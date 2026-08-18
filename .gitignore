@@ -1,0 +1,69 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments — every example project makes its own
+.venv/
+venv/
+ENV/
+env/
+.python-version
+
+# Tool caches
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.pytest_cache/
+.tox/
+.nox/
+.hypothesis/
+.cache/
+
+# Coverage / test artifacts
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+*.cover
+nosetests.xml
+junit.xml
+
+# Packaging / build output
+build/
+dist/
+sdist/
+wheels/
+*.egg-info/
+*.egg
+.eggs/
+MANIFEST
+pip-wheel-metadata/
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Node (module03 runs polyglot containers)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Local databases created by the examples at runtime
+*.sqlite
+*.sqlite3
+
+# Log files created by the examples at runtime
+*.log
+
+# Jupyter / IPython
+.ipynb_checkpoints/
+profile_default/
+ipython_config.py
+
