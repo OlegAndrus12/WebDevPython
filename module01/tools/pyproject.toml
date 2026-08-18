@@ -1,0 +1,102 @@
+[project]
+name = "statusboard"
+version = "0.1.0"
+description = "Uptime board for public sites — the same app, used here to demo ruff, bandit and mypy"
+requires-python = ">=3.12"
+
+# The application itself needs exactly two packages. Everything else in this
+# folder is a development tool and lives in the group below.
+dependencies = [
+    "flask>=3.1.0,<4.0.0",
+    "requests>=2.32.3,<3.0.0",
+]
+
+# PEP 735 dependency groups — the standard section, read by uv, pip 25.1+ and
+# Poetry 2.x alike. These tools must never ship to production:
+#
+#   uv sync                      # installs main + dev
+#   uv sync --no-dev             # what a deploy installs
+#
+[dependency-groups]
+dev = [
+    "ruff>=0.14.0",
+    "bandit>=1.9.4",
+    "mypy>=1.18.0",
+    "pytest>=9.1.1",
+    "pre-commit>=4.6.1",
+
+    # requests ships no type information of its own, so without these stubs
+    # mypy treats every `requests.get(...)` as Any and stops checking below
+    # that line. The stubs are maintained separately, in typeshed.
+    "types-requests>=2.33.0",
+]
+
+# ---------------------------------------------------------------------------
+# ruff — linter + formatter
+# ---------------------------------------------------------------------------
+# Found automatically: a bare `ruff check .` in this folder reads this.
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+# All three demo folders are broken on purpose. Linting — or worse,
+# auto-fixing — them would undo exactly what they exist to show.
+extend-exclude = ["bandit_demo", "mypy_demo", "ruff_demo"]
+
+[tool.ruff.lint]
+# E/F   = pycodestyle + pyflakes (what flake8 gave you)
+# I     = isort         — import order
+# UP    = pyupgrade     — old syntax that has a modern form
+# B     = bugbear       — real bug patterns, not style
+# SIM   = simplify      — needlessly complicated constructs
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.isort]
+# This project is a flat folder, not a package, so ruff cannot tell which
+# imports are ours. Without this, `import services` gets sorted in among the
+# third-party packages and the stdlib/third-party/local grouping is lost.
+known-first-party = ["app", "checks", "services", "incidents"]
+
+# ---------------------------------------------------------------------------
+# bandit — security scanner
+# ---------------------------------------------------------------------------
+# NOT found automatically. bandit reads this section only when you point it
+# here: `bandit -c pyproject.toml -r .`. Without -c it scans .venv too and
+# buries you in findings from other people's code.
+[tool.bandit]
+exclude_dirs = [".venv", "tests", "bandit_demo", "mypy_demo", "ruff_demo"]
+
+# ---------------------------------------------------------------------------
+# mypy — static type checking
+# ---------------------------------------------------------------------------
+# Found automatically, like ruff. A bare `mypy` here is a complete command.
+[tool.mypy]
+python_version = "3.12"
+
+# What to check when no path is given on the command line. The alternative is
+# `mypy .`, which would also crawl the demo folders.
+files = ["app.py", "checks.py", "services.py", "incidents.py", "tests"]
+
+# The one flag worth turning on before any other. By default mypy skips the
+# body of a function with no annotations at all, so a file with no hints gets
+# no checking whatsoever — and reports Success. This checks those bodies too,
+# treating the parameters as Any.
+check_untyped_defs = true
+
+# Catches `# type: ignore` comments left behind after the underlying problem
+# was fixed — they otherwise hide the next real error on that line forever.
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+# Applies only to files mypy discovers by crawling a directory. A path named
+# explicitly on the command line is always checked, which is what makes
+# `mypy mypy_demo/broken.py` work while a bare `mypy` stays clean.
+exclude = ["mypy_demo/", "bandit_demo/", "ruff_demo/"]
+
+# ---------------------------------------------------------------------------
+# pytest — so `pytest` alone works from this folder
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-ra"
