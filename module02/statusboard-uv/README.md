@@ -1,6 +1,6 @@
 # statusboard — dockerized with uv
 
-The uptime board from [`module01/04_uv/`](../../module01/04_uv/), unchanged, in five
+The uptime board from [`module01/uv_ex/`](../../module01/uv_ex/), unchanged, in five
 Dockerfile instructions. The application code, templates, `pyproject.toml` and `uv.lock`
 are a byte-for-byte copy — only [Dockerfile](Dockerfile), [.dockerignore](.dockerignore)
 and [docker-compose.yaml](docker-compose.yaml) are new.
@@ -26,12 +26,22 @@ Open <http://localhost:8000>. The board probes six public sites and shows status
 latency; the second tab reads Cloudflare's public incident API. Both need outbound
 internet from the container.
 
-Without Compose:
+Without Compose — the same thing by hand:
 
 ```bash
-docker build -t statusboard .
-docker run --rm -p 8000:8000 statusboard
+docker build -t statusboard-uv .
+docker run -d --name statusboard-uv -p 8000:8000 \
+  -e FLASK_DEBUG=0 \
+  -v "$PWD/services.json":/app/services.json \
+  statusboard-uv
+
+docker rm -f statusboard-uv
 ```
+
+Drop the `-v` and anything you add through the UI disappears with the container. Compose
+buys less here than in `flask-node/` or `microservices/` — one service, no network to
+create, no start order — but it still stops those three flags being something you retype
+correctly every time.
 
 ## The whole Dockerfile
 

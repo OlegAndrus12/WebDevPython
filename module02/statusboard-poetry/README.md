@@ -1,6 +1,6 @@
 # statusboard — dockerized with Poetry
 
-The uptime board from [`module01/03_poetry/`](../../module01/03_poetry/), unchanged, in
+The uptime board from [`module01/poetry_ex/`](../../module01/poetry_ex/), unchanged, in
 six Dockerfile instructions. Its twin [`../statusboard-uv/`](../statusboard-uv/) is the
 identical application packaged with uv — same `app.py`, same templates, same CSS, byte
 for byte. Only the manifest, the lock file and the Dockerfile differ.
@@ -17,12 +17,20 @@ docker compose up --build
 
 Open <http://localhost:8001>. (The uv build takes 8000, so both fit.)
 
-Without Compose:
+Without Compose — the same thing by hand:
 
 ```bash
 docker build -t statusboard-poetry .
-docker run --rm -p 8001:8000 statusboard-poetry
+docker run -d --name statusboard-poetry -p 8001:8000 \
+  -e FLASK_DEBUG=0 \
+  -v "$PWD/services.json":/app/services.json \
+  statusboard-poetry
+
+docker rm -f statusboard-poetry
 ```
+
+The container still serves on 8000 internally; only the published host port differs from
+the uv build, so both can run at once.
 
 ## The whole Dockerfile
 
