@@ -1,0 +1,18 @@
+[project]
+name = "solid"
+version = "0.1.0"
+description = "The five SOLID principles, each as a runnable before/after pair"
+requires-python = ">=3.12"
+
+# Only S/01_01.py and S/01_02.py need anything at all — they call the PrivatBank
+# exchange-rate API. Every other example is pure stdlib.
+dependencies = [
+    "requests (>=2.32.3,<3.0.0)",
+]
+
+[tool.poetry]
+# A flat folder of standalone scripts, not a package: nobody installs this with
+# `pip install solid`. package-mode = false tells Poetry to manage the
+# environment only and skip the build step, so no src/ layout and no
+# build-system section are needed.
+package-mode = false
