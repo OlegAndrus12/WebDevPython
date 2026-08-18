@@ -164,6 +164,9 @@ class Repository[E: Entity]:
     def add(self, entity: E) -> None: ...
     def get(self, id: int) -> E | None: ...
 
+class User:
+    id: int = 0
+
 class UserRepo(Repository[User]): ...   # fine, User is an Entity
 class BadRepo(Repository[str]): ...     # type error, str is not an Entity
 

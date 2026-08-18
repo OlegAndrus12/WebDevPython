@@ -1,0 +1,18 @@
+[project]
+name = "singleton"
+version = "0.1.0"
+description = "Two ways to load configuration exactly once"
+requires-python = ">=3.12"
+
+# Both examples read .env through python-dotenv. Nothing else is needed —
+# the singleton machinery itself is stdlib (__new__ in one file,
+# functools.lru_cache in the other).
+dependencies = [
+    "python-dotenv (>=1.1.1,<2.0.0)",
+]
+
+[tool.poetry]
+# Two standalone scripts, not a package: nobody installs this with
+# `pip install singleton`. package-mode = false tells Poetry to manage the
+# environment only and skip the build step.
+package-mode = false
