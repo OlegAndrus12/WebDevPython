@@ -9,6 +9,7 @@ concrete — run it, break it, read why it broke.
 
 ```
 ├── module01/   Python tooling, typing, and object-oriented design
+├── module02/   Docker, networking, and Docker Compose
 ```
 
 **Conventions used throughout:**
@@ -93,6 +94,34 @@ alone.
 | **[Template Method](module01/patterns/template_method/)** | An export routine with one overridable hook — and the Liskov violation it invites |
 
 📋 Full topic list: **[module01/AGENDA.md](module01/AGENDA.md)**
+
+---
+
+# Module 02 — Docker, networking and Docker Compose
+
+Nine self-contained examples, meant to be read in order, building from *"run one image"* to
+*"orchestrate seven polyglot services with one command."* Every folder has its own README with
+the full walkthrough; [module02/README.md](module02/README.md) is the map and carries a full
+Docker/Compose cheat sheet at the bottom.
+
+| # | Folder | New idea | Stack |
+| --- | --- | --- | --- |
+| 0 | [welcome-to-docker/](module02/welcome-to-docker/) | Run an image somebody else built | nginx |
+| 1 | [python-script/](module02/python-script/) | `Dockerfile`, `build`, `run` | Python |
+| 2 | [ruby-script/](module02/ruby-script/) | Write a Dockerfile yourself (exercise) | Ruby |
+| 3 | [java/](module02/java/) | Shipping a pre-built artifact, `.dockerignore` | Java |
+| 4 | [flask-node/](module02/flask-node/) | Containers must share a network → Compose | Python + Node + Mongo |
+| 5 | [microservices/](module02/microservices/) | Compose at scale, service-to-service calls | Python + Node + Go + Java + React |
+| 6 | [postgres_ex/](module02/postgres_ex/) | Compose with no build at all — images + volumes | Postgres + pgAdmin |
+| 7 | [statusboard-uv/](module02/statusboard-uv/) | A real project: lock file, dev/runtime split | Python (uv) |
+| 8 | [statusboard-poetry/](module02/statusboard-poetry/) | Same app, same lesson, different packaging tool | Python (Poetry) |
+
+Four rules that hold throughout the module:
+
+1. `localhost` inside a container is **that container**, always.
+2. Container-to-container traffic uses the **container port**, never the published host port.
+3. On a user-defined network, the **service name is the hostname** — never a hard-coded IP.
+4. The default `bridge` network has no DNS: only user-defined networks resolve names.
 
 ---
 
