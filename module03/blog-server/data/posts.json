@@ -1,29 +1,16 @@
 [
   {
-    "id": "p1755648000000",
-    "author": "Oleh Andrus",
-    "text": "Shipped the first version of this blog on a bare http.server — no Flask, no Django, just BaseHTTPRequestHandler and a little routing.\n\nTurns out you learn a lot more about HTTP when nothing is done for you.",
-    "time": 1755648000000,
-    "likes": 4,
-    "comments": [
-      {
-        "author": "Maria K.",
-        "text": "The routing part is clean.",
-        "time": 1755648900000
-      },
-      {
-        "author": "Dmytro",
-        "text": "Does it serve static files too?",
-        "time": 1755649800000
-      }
-    ]
-  },
-  {
     "id": "p1755561600000",
     "author": "Maria K.",
     "text": "Today's bug: FileNotFoundError on 404.html.\n\nCause: Path() resolves to the working directory, not the script directory. Fix: Path(__file__).parent.",
     "time": 1755561600000,
     "likes": 2,
-    "comments": []
+    "comments": [
+      {
+        "author": "you",
+        "text": "sda",
+        "time": 1787212097582
+      }
+    ]
   }
 ]
