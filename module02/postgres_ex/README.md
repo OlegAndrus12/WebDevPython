@@ -57,6 +57,62 @@ docker compose exec db psql -U admin -d users -c '\l'
 psql postgresql://admin:admin@localhost:5432/users
 ```
 
+## Some SQL to try
+
+Open an interactive session against the `users` database:
+
+```bash
+docker compose exec db psql -U admin -d users
+```
+
+Create a table:
+
+```sql
+CREATE TABLE IF NOT EXISTS users (
+    id         SERIAL PRIMARY KEY,
+    name       TEXT NOT NULL,
+    email      TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+Add a user:
+
+```sql
+INSERT INTO users (name, email) VALUES ('Ada Lovelace', 'ada@example.com');
+```
+
+Get all users:
+
+```sql
+SELECT * FROM users;
+```
+
+```text
+ id |     name     |      email      |          created_at
+----+--------------+-----------------+-------------------------------
+  1 | Ada Lovelace | ada@example.com | 2024-01-01 12:00:00.000000+00
+(1 row)
+```
+
+Quit with `\q`. A few other useful psql commands: `\l` lists databases, `\dt` lists tables,
+`\d users` describes the table.
+
+The same statements as one-liners, no interactive session needed:
+
+```bash
+docker compose exec db psql -U admin -d users -c \
+  "CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, created_at TIMESTAMPTZ NOT NULL DEFAULT now());"
+
+docker compose exec db psql -U admin -d users -c \
+  "INSERT INTO users (name, email) VALUES ('Ada Lovelace', 'ada@example.com');"
+
+docker compose exec db psql -U admin -d users -c "SELECT * FROM users;"
+```
+
+Because `/var/lib/postgresql/data` is a named volume, this table is still there after
+`docker compose down && docker compose up -d` — see [Persistence](#persistence) below.
+
 ## Connect from pgAdmin — the network lesson, one more time
 
 Open <http://localhost:5050>, log in with `admin@gmail.com` / `admin`, then

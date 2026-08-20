@@ -1,0 +1,15 @@
+[project]
+name = "module04"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aiopath>=0.7.7",
+    "aioshutil>=1.6",
+    "aiosqlite>=0.22.1",
+    "asyncpg>=0.31.0",
+    "matplotlib>=3.11.1",
+    "psycopg-pool>=3.3.1",
+    "psycopg[binary]>=3.3.4",
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "id": "p1755561600000",
+    "author": "Maria K.",
+    "text": "Today's bug: FileNotFoundError on 404.html.\n\nCause: Path() resolves to the working directory, not the script directory. Fix: Path(__file__).parent.",
+    "time": 1755561600000,
+    "likes": 2,
+    "comments": [
+      {
+        "author": "you",
+        "text": "sda",
+        "time": 1787212097582
+      }
+    ]
+  }
+]

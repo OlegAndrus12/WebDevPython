@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Home | Facebook</title>
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <script src="/assets/js/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><img src="/assets/img/logo.png" alt=""><span>Facebook</span></a>
+    <nav>
+      <a class="tab" href="/">Home</a>
+      <a class="tab" href="/blog">Blog</a>
+      <a class="tab" href="/contact">Contact</a>
+    </nav>
+    <button class="icon-btn" data-theme-toggle aria-label="Toggle theme">☾</button>
+    <span data-avatar="Oleh Andrus" data-small></span>
+  </header>
+
+  <div class="wrap">
+    <div class="page-head">
+      <h1>Facebook</h1>
+      <p>A small blog served by a bare <code>http.server</code> — no framework, no build step.</p>
+    </div>
+
+    <section class="card">
+      <div class="card__body">
+        <h2 style="font-size:15px;margin:0 0 10px">Routes</h2>
+        <div class="link-list">
+          <a class="link-row" href="/"><span>Home</span><code>GET /</code></a>
+          <a class="link-row" href="/blog"><span>Blog feed</span><code>GET /blog</code></a>
+          <a class="link-row" href="/contact"><span>Contact form</span><code>POST /contact</code></a>
+          <a class="link-row" href="/api/posts"><span>Posts as JSON</span><code>GET /api/posts</code></a>
+          <a class="link-row" href="/nowhere"><span>Anything else</span><code>404</code></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card__body">
+        <h2 style="font-size:15px;margin:0 0 10px">Where the data lives</h2>
+        <p class="muted small">
+          Posts and comments are written to <code>data/posts.json</code> next to <code>main.py</code>.
+          The file is rewritten atomically on every change, so you can open it in an editor while the
+          server runs.
+        </p>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card__body">
+        <h2 style="font-size:15px;margin:0 0 10px">Run it</h2>
+        <pre class="code">$ python3 main.py
+Serving on http://localhost:8001</pre>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

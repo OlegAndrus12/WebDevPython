@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blog | Facebook</title>
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <script src="/assets/js/app.js" defer></script>
+  <script src="/assets/js/feed.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><img src="/assets/img/logo.png" alt=""><span>Facebook</span></a>
+    <nav>
+      <a class="tab" href="/">Home</a>
+      <a class="tab" href="/blog">Blog</a>
+      <a class="tab" href="/contact">Contact</a>
+    </nav>
+    <button class="icon-btn" data-theme-toggle aria-label="Toggle theme">☾</button>
+    <span data-avatar="Oleh Andrus" data-small></span>
+  </header>
+
+  <div class="wrap">
+    <div class="page-head">
+      <h1>Blog</h1>
+      <p>Posts and comments are stored server-side in <code>data/posts.json</code>.</p>
+    </div>
+
+    <section class="card composer">
+      <div class="composer__row composer__row--top">
+        <span data-avatar="You" data-small></span>
+        <textarea id="composer-input" rows="1" placeholder="Write a post…" aria-label="Post text"></textarea>
+      </div>
+      <div class="composer__row">
+        <label class="small muted">
+          Posting as
+          <input id="composer-name" class="name-input" aria-label="Your name" maxlength="60">
+        </label>
+        <button class="btn" id="composer-submit" disabled>Post</button>
+      </div>
+    </section>
+
+    <div id="feed"></div>
+  </div>
+</body>
+</html>
