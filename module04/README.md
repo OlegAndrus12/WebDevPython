@@ -12,8 +12,8 @@ to take a number on trust.
 | --- | --- | --- | --- |
 | 1 | Why bother | [`02_sync_vs_async.py`](02_sync_vs_async.py) | 16 sites, one by one vs. all at once |
 | 2 | asyncio basics | [`01_coroutine_object.py`](01_coroutine_object.py), [`02_await_is_sequential.py`](02_await_is_sequential.py) | A coroutine is not a running coroutine; `await` is not parallelism |
-| 3 | Running things together | [`03_gather_with_exeption.py`](03_gather_with_exeption.py), [`04_task_*.py`](.), [`05_wait_first_completed.py`](05_wait_first_completed.py) | `gather`, `create_task`, `wait(FIRST_COMPLETED)` |
-| 4 | Blocking code | [`06_thread_pool_*.py`](.) | Threads, the event loop, and the GIL |
+| 3 | Running things together | [`03_gather_with_exeption.py`](03_gather_with_exeption.py), `04_task_*.py` (three files), [`05_wait_first_completed.py`](05_wait_first_completed.py) | `gather`, `create_task`, `wait(FIRST_COMPLETED)` |
+| 4 | Blocking code | `06_thread_pool_*.py` (three files) | Threads, the event loop, and the GIL |
 | 5 | Files | [`sort-files/`](sort-files/) | `aiopath` + `aioshutil` vs. `pathlib` + `shutil` |
 | 6 | HTTP | [`download_files.py`](download_files.py), [`exchange-rate/`](exchange-rate/) | Streaming downloads; a real API, 30 requests |
 | 7 | SQLite | [`sqlite-crud/`](sqlite-crud/) | `sqlite3` vs. `aiosqlite` — and what aiosqlite is not |

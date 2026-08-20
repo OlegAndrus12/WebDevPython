@@ -10,6 +10,8 @@ concrete — run it, break it, read why it broke.
 ```
 ├── module01/   Python tooling, typing, and object-oriented design
 ├── module02/   Docker, networking, and Docker Compose
+├── module03/   HTTP by hand, with nothing but the standard library
+├── module04/   asyncio, threads, and the limits of both
 ```
 
 **Conventions used throughout:**
@@ -123,5 +125,75 @@ Four rules that hold throughout the module:
 3. On a user-defined network, the **service name is the hostname** — never a hard-coded IP.
 4. The default `bridge` network has no DNS: only user-defined networks resolve names.
 
+📋 Full topic list: **[AGENDA.md](AGENDA.md)**
+
 ---
 
+# Module 03 — HTTP by hand with `http.server`
+
+Two servers written against the standard library and nothing else: no Flask, no Django, no
+`pip install`. You write the status line, you pick the `Content-Type`, you count the bytes of the
+body — so that later, when a framework does all of it invisibly, you know what it is doing.
+[module03/README.md](module03/README.md) is the method-by-method walkthrough.
+
+| # | Folder | New idea | Size |
+| --- | --- | --- | --- |
+| 0 | [clock-server/](module03/clock-server/) | The smallest handler a browser will render: one `do_GET`, no routing | 18 lines |
+| 1 | [blog-server/](module03/blog-server/) | Routing, static files, a JSON API, a form POST, a real 404 | ~185 lines |
+
+`clock-server/` is the whole protocol in four statements, and every limitation it has motivates the
+next example. `blog-server/` is what those four statements become once one URL is not enough — a
+route table, a static-file branch with a path-traversal guard, a JSON API that reads and writes a
+file on disk, and a form POST answered with a redirect so the page still works with JavaScript off.
+The module ends by naming what a framework would have done for you, in code you have already
+written.
+
+Also here: [mime-type.md](module03/mime-type.md) — why `Content-Type` is not optional.
+
+📋 Full topic list: **[module03/AGENDA.md](module03/AGENDA.md)**
+
+---
+
+# Module 04 — asyncio, threads and blocking I/O
+
+Thirteen scripts and four folders, all circling one question: **what does `async` actually buy you,
+and when does it buy you nothing?** The answer is narrower than the hype. Async overlaps *waiting*.
+It adds no processing power, makes no query faster, and does nothing at all for code that computes.
+Every file here either demonstrates the win or takes it away again, and each prints its own
+timings — nothing in the module asks you to take a number on trust.
+[module04/README.md](module04/README.md) is the map and carries an asyncio cheat sheet at the bottom.
+
+| # | Section | Where | The idea |
+| --- | --- | --- | --- |
+| 1 | Why bother | [`02_sync_vs_async.py`](module04/02_sync_vs_async.py) | 16 sites checked one by one, then all at once |
+| 2 | asyncio basics | [`01_coroutine_object.py`](module04/01_coroutine_object.py), [`02_await_is_sequential.py`](module04/02_await_is_sequential.py) | A coroutine is not a running coroutine; `await` is not parallelism |
+| 3 | Running things together | [`03_gather_with_exeption.py`](module04/03_gather_with_exeption.py), `04_task_*.py`, [`05_wait_first_completed.py`](module04/05_wait_first_completed.py) | `gather`, a `Task` handle, `wait(FIRST_COMPLETED)` |
+| 4 | Blocking code | `06_thread_pool_*.py` | Threads, the frozen event loop, and the GIL |
+| 5 | Files | [sort-files/](module04/sort-files/) | `aiopath` + `aioshutil` vs. `pathlib` + `shutil` |
+| 6 | HTTP | [`download_files.py`](module04/download_files.py), [exchange-rate/](module04/exchange-rate/) | Streaming downloads; a real API, 30 requests |
+| 7 | SQLite | [sqlite-crud/](module04/sqlite-crud/) | `sqlite3` vs. `aiosqlite` — and what aiosqlite is not |
+| 8 | PostgreSQL | [postgres-crud/](module04/postgres-crud/) | `psycopg` vs. `asyncpg`, swept by concurrency |
+
+Each of the four folders holds a `sync.py` / `async_ex.py` pair doing identical work, so the only
+variable is how the waiting is handled — and two of them are there to show the win failing to
+appear. Copying files on an SSD is syscall-bound, so the async version is no faster; there is no such
+thing as a non-blocking SQLite call, so `aiosqlite` buys a free event loop rather than a quicker
+query. The module closes with [sweep.py](module04/postgres-crud/sweep.py), which holds the SQL, the
+pool and the table fixed and changes only the number of requests in flight: against a 10-connection
+pool, threads and coroutines land within ~1.4x of each other, because the database is the
+bottleneck. The gap is small at 1 000 concurrent requests and decisive at 100 000, and that is the
+only honest reason to reach for an async driver.
+
+Four rules that hold throughout the module:
+
+1. Calling an `async def` function **runs nothing** — it builds a coroutine object; the loop runs it.
+2. `await` is a **sequencing** keyword, not a parallelism one. Concurrency comes from `gather`,
+   `create_task` or `wait`.
+3. Anything without `await` in front of it runs **on the event loop**. If it can block for longer
+   than a millisecond, it belongs in a thread.
+4. Threads help code that **waits**; processes help code that **computes**. Telling those apart is
+   the entire skill.
+
+📋 Full topic list: **[module04/AGENDA.md](module04/AGENDA.md)**
+
+---
