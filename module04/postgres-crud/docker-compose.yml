@@ -1,0 +1,26 @@
+# A throwaway Postgres for this example only.
+#
+#   docker compose up -d      # start it
+#   docker compose down -v    # stop it and delete the data
+#
+# Port 5433 on purpose: 5432 is very likely taken by another project on your
+# machine, and this container is not worth a conflict.
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: module04_postgres
+    environment:
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo
+      POSTGRES_DB: contacts
+    ports:
+      - "5433:5432"
+    # tmpfs: the data lives in RAM and dies with the container. This is a demo,
+    # not something you want leaving a volume behind.
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demo -d contacts"]
+      interval: 1s
+      timeout: 3s
+      retries: 20
