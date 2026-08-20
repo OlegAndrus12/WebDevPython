@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contact | Facebook</title>
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <script src="/assets/js/app.js" defer></script>
+  <script src="/assets/js/contact.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><img src="/assets/img/logo.png" alt=""><span>Facebook</span></a>
+    <nav>
+      <a class="tab" href="/">Home</a>
+      <a class="tab" href="/blog">Blog</a>
+      <a class="tab" href="/contact">Contact</a>
+    </nav>
+    <button class="icon-btn" data-theme-toggle aria-label="Toggle theme">☾</button>
+    <span data-avatar="Oleh Andrus" data-small></span>
+  </header>
+
+  <div class="wrap">
+    <div class="page-head">
+      <h1>Contact</h1>
+      <p>Submits to <code>POST /contact</code> — the body is printed to the server console.</p>
+    </div>
+
+    <section class="card">
+      <div class="card__body">
+        <div class="notice notice--ok" id="sent" hidden>
+          Message sent. The parsed form body was printed in the terminal running <code>main.py</code>.
+        </div>
+
+        <form id="contact-form" method="POST" action="/contact" novalidate>
+          <div class="field">
+            <label for="c-name">Name</label>
+            <input id="c-name" type="text" name="name" autocomplete="name">
+            <div class="error"></div>
+          </div>
+          <div class="field">
+            <label for="c-email">Email</label>
+            <input id="c-email" type="email" name="email" autocomplete="email">
+            <div class="error"></div>
+          </div>
+          <div class="field">
+            <label for="c-message">Message</label>
+            <textarea id="c-message" name="message" rows="4"></textarea>
+            <div class="error"></div>
+            <div class="counter" id="char-count">0 / 500</div>
+          </div>
+          <button class="btn" type="submit">Send message</button>
+        </form>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
