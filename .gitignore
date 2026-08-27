@@ -67,3 +67,6 @@ yarn-error.log*
 profile_default/
 ipython_config.py
 
+
+# Secrets — every project ships a .env.example instead
+.env

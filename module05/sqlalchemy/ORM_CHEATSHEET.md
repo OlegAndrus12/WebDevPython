@@ -31,7 +31,7 @@
 | `ForeignKey(...)` | зв'язок на рівні бази | `ForeignKey("users.id", ondelete="CASCADE")` |
 | `relationship(back_populates=)` | атрибут-зв'язок у Python | `videos: Mapped[list["Video"]] = relationship(back_populates="author")` |
 | `cascade="all, delete-orphan"` | ORM видаляє дітей разом з батьком | `relationship(cascade="all, delete-orphan")` |
-| `secondary=` | many-to-many через таблицю-звʼязку | `relationship(secondary=video_tag)` |
+| `secondary=` | many-to-many через таблицю-звʼязку | `relationship(secondary=VideoTag.__table__)` |
 | `__table_args__` | обмеження на рівні таблиці | `(CheckConstraint("age > 10"), Index("ix_a", "active", "age"))` |
 | `metadata.create_all` | створити таблиці | `Base.metadata.create_all(engine)` |
 | `metadata.drop_all` | видалити таблиці | `Base.metadata.drop_all(engine)` |

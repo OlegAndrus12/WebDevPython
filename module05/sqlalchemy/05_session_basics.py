@@ -11,7 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from models import Base, User
-from seed import make_engine
+from db import make_engine
 
 engine = make_engine(memory=True)
 Base.metadata.create_all(engine)

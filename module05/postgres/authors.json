@@ -1,0 +1,79 @@
+[
+  {
+    "name": "Ursula K. Le Guin",
+    "email": "leguin@example.com",
+    "city": "Portland",
+    "books": [
+      {"title": "The Left Hand of Darkness", "year": 1969, "price": 320},
+      {"title": "The Dispossessed", "year": 1974, "price": 290},
+      {"title": "A Wizard of Earthsea", "year": 1968, "price": 210}
+    ]
+  },
+  {
+    "name": "Isaac Asimov",
+    "email": "asimov@example.com",
+    "city": "New York",
+    "books": [
+      {"title": "Foundation", "year": 1951, "price": 180},
+      {"title": "I, Robot", "year": 1950, "price": 240},
+      {"title": "The Gods Themselves", "year": 1972, "price": 330}
+    ]
+  },
+  {
+    "name": "Philip K. Dick",
+    "email": "dick@example.com",
+    "city": "Santa Ana",
+    "books": [
+      {"title": "Do Androids Dream of Electric Sheep?", "year": 1968, "price": 275},
+      {"title": "Ubik", "year": 1969, "price": 260},
+      {"title": "A Scanner Darkly", "year": 1977, "price": 310}
+    ]
+  },
+  {
+    "name": "Octavia E. Butler",
+    "email": "butler@example.com",
+    "city": "Pasadena",
+    "books": [
+      {"title": "Kindred", "year": 1979, "price": 350},
+      {"title": "Dawn", "year": 1987, "price": 295},
+      {"title": "Parable of the Sower", "year": 1993, "price": 420}
+    ]
+  },
+  {
+    "name": "Arthur C. Clarke",
+    "email": "clarke@example.com",
+    "city": "London",
+    "books": [
+      {"title": "Childhood's End", "year": 1953, "price": 230},
+      {"title": "Rendezvous with Rama", "year": 1973, "price": 265},
+      {"title": "2001: A Space Odyssey", "year": 1968, "price": 340}
+    ]
+  },
+  {
+    "name": "Margaret Atwood",
+    "email": "atwood@example.com",
+    "city": "Toronto",
+    "books": [
+      {"title": "The Handmaid's Tale", "year": 1985, "price": 410},
+      {"title": "Oryx and Crake", "year": 2003, "price": 390},
+      {"title": "The Testaments", "year": 2019, "price": 520}
+    ]
+  },
+  {
+    "name": "Terry Pratchett",
+    "email": "pratchett@example.com",
+    "city": "Salisbury",
+    "books": [
+      {"title": "Mort", "year": 1987, "price": 195},
+      {"title": "Small Gods", "year": 1992, "price": 225}
+    ]
+  },
+  {
+    "name": "Kim Stanley Robinson",
+    "email": "robinson@example.com",
+    "city": "Davis",
+    "books": [
+      {"title": "Red Mars", "year": 1992, "price": 445}
+    ]
+  }
+]
