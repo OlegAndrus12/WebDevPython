@@ -1,0 +1,14 @@
+[project]
+name = "module05"
+version = "0.1.0"
+description = "SQLAlchemy Core and ORM, on SQLite and PostgreSQL"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "sqlalchemy[asyncio]>=2.0.43",
+    "faker>=37.5.3",
+    "aiosqlite>=0.22.1",
+    "psycopg[binary]>=3.3.4",
+    "asyncpg>=0.31.0",
+    "alembic>=1.16.5",
+]
