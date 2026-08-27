@@ -127,7 +127,7 @@ def main() -> None:
     print("8. a row is a plain tuple:", row)
     print("   -> no type, no attributes, no identity: row[1] is 'name' only")
     print("      because you remember the column order you typed.")
-    print("   That gap is the entire reason the next 16 files exist.")
+    print("   That gap is the entire reason the rest of this module exists.")
 
 
 if __name__ == "__main__":

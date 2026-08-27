@@ -1,6 +1,6 @@
-"""ORM-моделі: клас -> таблиця .
+"""ORM-моделі: клас -> таблиця.
 
-    uv run 05_orm_models.py
+    uv run 04_orm_models.py
 """
 from datetime import datetime
 from decimal import Decimal
@@ -10,8 +10,6 @@ from sqlalchemy import (
     create_engine, func, inspect,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-
-from models import Base, User, Video
 
 
 # --- 1. The whole vocabulary you need ------------------------------------------
@@ -25,7 +23,7 @@ class Author(Demo):
     # The annotation gives the type and the nullability.
     id: Mapped[int] = mapped_column(primary_key=True)       # PK -> autoincrement
     name: Mapped[str] = mapped_column(String(120))          # NOT NULL VARCHAR(120)
-    bio: Mapped[str | None]                                 # nullable TEXT
+    bio: Mapped[str | None]                                 # `| None` -> NULL allowed
     email: Mapped[str] = mapped_column(String(120), unique=True)
     age: Mapped[int] = mapped_column(index=True)
     rate: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0"))
@@ -60,20 +58,26 @@ class Post(Demo):
     )
     author: Mapped[Author] = relationship(back_populates="posts")
 
+    def __repr__(self) -> str:
+        return f"<Post #{self.id} {self.title!r}>"
+
 
 engine = create_engine("sqlite://")
 Demo.metadata.create_all(engine)
-print("1. tables created  :", inspect(engine).get_table_names())
-print("   columns of posts:", [c.name for c in Post.__table__.columns])
+print("1. tables created   :", inspect(engine).get_table_names())
+print("   columns of posts :", [c.name for c in Post.__table__.columns])
 
-video = Video(title="Моделі за 5 хвилин")
-print("\n3. Video(...) ->", video)
-print("   id     =", video.id, "-- the database assigns it, on INSERT")
-print("   views  =", video.views, "-- default=0 is also applied on INSERT, not now")
-print("   author =", video.author, "-- an empty relationship, not an error")
+# --- 2. A model instance is a plain Python object until you add it to a session -
+post = Post(title="Моделі за 5 хвилин")
+print("\n2. Post(...) ->", post)
+print("   id     =", post.id, "-- the database assigns it, on INSERT")
+print("   author =", post.author, "-- an empty relationship, not an error")
 
-Base.metadata.create_all(engine)
+author = Author(name="Олена", email="olena@example.com", age=31)
+print("   rate   =", author.rate, "-- default= is applied on INSERT, not now")
+print("   active =", author.active, "-- same: `default=` is not a Python default")
 
-print("\n4. models.Base knows:", sorted(Base.metadata.tables))
+# --- 3. The Base owns the MetaData, so create_all/drop_all see every model ------
+print("\n3. Demo.metadata knows:", sorted(Demo.metadata.tables))
 
 engine.dispose()

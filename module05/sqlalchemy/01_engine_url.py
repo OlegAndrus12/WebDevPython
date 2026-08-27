@@ -39,9 +39,13 @@ with engine.connect() as conn:
     version = conn.execute(text("SELECT sqlite_version()")).scalar_one()
     print("first connect -> sqlite", version, "| file exists now?", DB.exists())
 
-# --- 5. echo=True prints every statement SQLAlchemy emits ---------------------
+# --- 4. echo=True prints every statement SQLAlchemy emits ---------------------
 # Turn this on whenever you are surprised by what the ORM did. It is the single
 # most useful debugging switch in the library.
 loud = create_engine(f"sqlite:///{DB}", echo=True)
 with loud.connect() as conn:
     conn.execute(text("SELECT 1"))
+
+# An Engine holds a pool of open connections; dispose() returns them.
+loud.dispose()
+engine.dispose()
