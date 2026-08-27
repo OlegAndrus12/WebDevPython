@@ -1,10 +1,12 @@
-"""
+"""Транзакції на Core рівні: connect() vs begin(), і text() для сирого SQL.
 
     with engine.connect() as conn:   -> BEGIN ... ROLLBACK unless you conn.commit()
     with engine.begin()   as conn:   -> BEGIN ... COMMIT   (ROLLBACK on exception)
 
 "Commit as you go" (`connect`) or "begin once" (`begin`). There is no third mode,
-and there is no autocommit. 
+and there is no autocommit.
+
+    uv run 02_connect_and_text.py
 """
 from pathlib import Path
 

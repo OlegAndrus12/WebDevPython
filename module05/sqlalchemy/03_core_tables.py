@@ -2,12 +2,13 @@
 
 Core level means: no classes, no ORM, no session. Just a description of the schema
 (`MetaData`) and SQL expressions built from it. Everything the ORM does above this
-line, it does *through* this layer 
+line, it does *through* this layer.
 
     MetaData -- a registry of Tables. `create_all()` / `drop_all()` live here.
     Table    -- one table, and a Python object you can index: users.c.name
     Column   -- name, type, and constraints
 
+    uv run 03_core_tables.py
 """
 from pathlib import Path
 
