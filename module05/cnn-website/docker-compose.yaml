@@ -1,0 +1,75 @@
+# Two services: the app and its database. Same shape as ../postgres/compose.yaml
+# (postgres:15, admin/admin, a pg_isready healthcheck, a named volume) with the
+# app added on top.
+#
+#   docker compose up --build --wait      app on http://localhost:8000
+#   docker compose --profile tools up -d  adds pgAdmin on http://localhost:5051
+services:
+  db:
+    image: postgres:15
+    container_name: cnn_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
+      POSTGRES_DB: ${DB_NAME:-cnn}
+    volumes:
+      - cnn_postgres_data:/var/lib/postgresql/data
+    # 5433, not 5432: ../postgres/compose.yaml already publishes 5432, and both
+    # stacks have to be able to run at the same time. Inside the compose
+    # network the port is still 5432 -- this only remaps the host side.
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    # `depends_on: condition: service_healthy` below is only meaningful because
+    # of this block. Postgres accepts TCP connections seconds before it will
+    # accept queries, so waiting on the port alone is not enough.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-admin} -d ${DB_NAME:-cnn}"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+      start_period: 5s
+
+  web:
+    build: .
+    container_name: cnn_web
+    # Brings in NEWS_API_KEY. The file is gitignored -- copy .env.example first.
+    env_file: .env
+    environment:
+      # Overrides the host-side defaults from .env. `db` is the service name,
+      # which is also its hostname on the compose network, and the port is the
+      # container's own 5432 rather than whatever is published outside.
+      # DB_USER / DB_PASSWORD / DB_NAME come through env_file unchanged.
+      DB_HOST: db
+      DB_PORT: 5432
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head &&
+      flask --app cnn_website run --host 0.0.0.0 --port 8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # Optional. Behind a profile, so a plain `up` does not start it.
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: cnn_pgadmin
+    profiles: ["tools"]
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5051:80"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  cnn_postgres_data:

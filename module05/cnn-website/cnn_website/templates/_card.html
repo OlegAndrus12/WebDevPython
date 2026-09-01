@@ -1,0 +1,38 @@
+{# One article card. Used for both the grid and, with lead=true, the top story.
+
+   Takes: article, and optionally lead (bool). #}
+<article class="card news-card h-100 {{ 'news-card-lead' if lead }}">
+    {% if article.image_url %}
+    <a href="{{ url_for('article', article_id=article.id) }}" class="card-img-link">
+        {# loading="lazy" -- a page of twelve cards otherwise fetches twelve
+           full-size images before the text is readable. #}
+        <img src="{{ article.image_url }}" class="card-img-top" alt="" loading="lazy">
+    </a>
+    {% else %}
+    {# The reference emitted no <img> at all here, so cards with and without a
+       picture were different heights. A placeholder keeps the grid even. #}
+    <a href="{{ url_for('article', article_id=article.id) }}"
+       class="card-img-link card-img-placeholder" aria-hidden="true">
+        <span>CNN</span>
+    </a>
+    {% endif %}
+
+    <div class="card-body d-flex flex-column">
+        <div class="card-meta mb-2">
+            <span class="source-badge">{{ article.source.name }}</span>
+            {% if article.published_at %}
+            <time datetime="{{ article.published_at.isoformat() }}">
+                {{ article.published_at.strftime("%d %b, %H:%M") }}
+            </time>
+            {% endif %}
+        </div>
+
+        <h3 class="card-title h6">
+            <a href="{{ url_for('article', article_id=article.id) }}">{{ article.title }}</a>
+        </h3>
+
+        {% if article.description %}
+        <p class="card-text">{{ article.description }}</p>
+        {% endif %}
+    </div>
+</article>

@@ -1,0 +1,14 @@
+[project]
+name = "cnn-website"
+version = "0.1.0"
+description = "Flask + SQLAlchemy + Alembic news reader on the NewsAPI"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "flask>=3.1.1",
+    "sqlalchemy>=2.0.43",
+    "alembic>=1.16.5",
+    "psycopg[binary]>=3.3.4",
+    "pydantic-settings>=2.10.1",
+    "requests>=2.32.5",
+]
