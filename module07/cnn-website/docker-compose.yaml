@@ -1,0 +1,62 @@
+name: news
+
+services:
+  db:
+    image: postgres:15
+    container_name: news_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
+      POSTGRES_DB: ${DB_NAME:-cnn}
+    volumes:
+      - news_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5435}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-admin} -d ${DB_NAME:-cnn}"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+      start_period: 5s
+  api:
+    build: .
+    container_name: news_api
+    env_file: .env
+    environment:
+      # `db` is the service name, which is its hostname on the compose network.
+      DB_HOST: db
+      DB_PORT: 5432
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8004:8000"
+    volumes:
+     - .:/app
+     - /app/.venv
+    command: >
+      sh -c "uv sync --frozen &&
+      alembic upgrade head &&
+      uvicorn news:app --host 0.0.0.0 --port 8000 --reload --reload-dir news"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: news_pgadmin
+    profiles: ["tools"]
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5053:80"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  news_postgres_data:

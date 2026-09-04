@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}{{ article.title }} · CNN Reader{% endblock %}
+
+{% block content %}
+{# Served entirely from Postgres -- this route never calls NewsAPI, so it works
+   with the network off. #}
+<article class="article-detail mx-auto">
+    <a class="small text-decoration-none" href="{{ url_for('index') }}">&larr; Back to headlines</a>
+
+    <h1 class="h2 mt-3">{{ article.title }}</h1>
+
+    <p class="card-meta">
+        <span class="source-badge">{{ article.source.name }}</span>
+        {% if article.author %}<span>{{ article.author }}</span>{% endif %}
+        {% if article.published_at %}
+        <time datetime="{{ article.published_at.isoformat() }}">{{ article.published_at.strftime("%d %b %Y, %H:%M") }}</time>
+        {% endif %}
+    </p>
+
+    {% if article.image_url %}
+    <img src="{{ article.image_url }}" class="img-fluid rounded my-3" alt="">
+    {% endif %}
+
+    {% if article.description %}
+    <p class="lead">{{ article.description }}</p>
+    {% endif %}
+
+    {% if article.content %}
+    {# NewsAPI truncates content to ~200 characters on the free plan and marks
+       the cut with "[+1234 chars]", which is why the link below matters. #}
+    <p>{{ article.content }}</p>
+    {% endif %}
+
+    <p class="mt-4">
+        <a class="btn btn-accent" href="{{ article.url }}" target="_blank" rel="noopener">
+            Read the full story at {{ article.url | domain }}
+        </a>
+    </p>
+</article>
+{% endblock %}
