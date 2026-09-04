@@ -1,30 +1,33 @@
 # postgres/
 
-SQLAlchemy 2.0 ORM проти Postgres у контейнері. Змінюється лише URL у [db.py](db.py) —
-код секцій той самий, що в [../sqlalchemy/](../sqlalchemy/). Теми — [AGENDA.md](AGENDA.md).
+SQLAlchemy 2.0 ORM against Postgres in a container. Only the URL in
+[db.py](db.py) changes — the section code is the same as in
+[../sqlalchemy/](../sqlalchemy/). Topics — [AGENDA.md](AGENDA.md).
 
 ```bash
-docker compose up -d --wait    # `--wait` чекає healthcheck; без нього перший запуск падає
+docker compose up -d --wait    # `--wait` waits for the healthcheck; without it the first run fails
 uv run crud.py
-docker compose down            # -v щоб і дані з тому знести
+docker compose down            # add -v to also remove the data volume
 ```
 
-| файл | що в ньому |
+| file | what's in it |
 | --- | --- |
-| [compose.yaml](compose.yaml) | `postgres:15` + `pgadmin4`, healthcheck на `pg_isready` |
+| [compose.yaml](compose.yaml) | `postgres:15` + `pgadmin4`, healthcheck on `pg_isready` |
 | [db.py](db.py) | engine, `get_session()`, `init_db()` |
 | [models.py](models.py) | `Author` 1:M `Book` |
-| [crud.py](crud.py) | сім секцій + дані: 8 авторів, 21 книжка, списком у файлі |
+| [crud.py](crud.py) | seven sections + data: 8 authors, 21 books, listed in the file |
 
-## Доступи
+## Access
 
 | | |
 | --- | --- |
-| Postgres | `localhost:5432`, база `users`, `admin` / `admin` |
+| Postgres | `localhost:5432`, database `users`, `admin` / `admin` |
 | pgAdmin | <http://localhost:5050>, `admin@gmail.com` / `admin` |
 
-У pgAdmin хост сервера — **`db`**, не `localhost`: pgAdmin у своєму контейнері.
+In pgAdmin the server host is **`db`**, not `localhost`: pgAdmin runs in
+its own container.
 
-Кожна секція `crud.py` — свій `with get_session()` (коміт на виході, rollback на
-винятку). Тому об'єкт із однієї секції в наступній недоступний і його дістають
-заново: `select(Author).where(Author.email == LE_GUIN)`.
+Each section of `crud.py` is its own `with get_session()` (commit on
+exit, rollback on exception). So an object from one section isn't
+available in the next one and gets fetched again:
+`select(Author).where(Author.email == LE_GUIN)`.

@@ -1,32 +1,34 @@
 # sqlalchemy/
 
-Core і ORM на SQLite. Кожен файл запускається окремо й друкує, що робить.
-Список тем — [AGENDA.md](AGENDA.md).
+Core and ORM on SQLite. Each file runs on its own and prints what it does.
+Topic list — [AGENDA.md](AGENDA.md).
 
 ```bash
 uv run 04_orm_models.py
 ```
 
-## Спільне
+## Shared
 
-| файл | що робить |
+| file | what it does |
 | --- | --- |
 | [db.py](db.py) | engine, `get_session()`, `init_db()`, `drop_db()`; `PRAGMA foreign_keys=ON` |
-| [models.py](models.py) | `User` 1:M `Video` M:M `Tag` через `VideoTag` |
-| [seed.py](seed.py) | 10 користувачів, 29 відео, 6 тегів; `Faker.seed(7)` — дані однакові щоразу |
+| [models.py](models.py) | `User` 1:M `Video` M:M `Tag` via `VideoTag` |
+| [seed.py](seed.py) | 10 users, 29 videos, 6 tags; `Faker.seed(7)` — the data is the same every time |
 
-`db.py` при імпорті робить `drop_all` + `create_all` + seed, тому кожен файл
-починає з чистої однакової бази і вивід двох файлів можна порівнювати.
-Файли 06-13 (ті, що з ORM) влаштовані однаково: кожна секція — свій
-`with get_session()` (коміт на виході з блоку, rollback на винятку), а останній
-рядок — `drop_db()`, тому після прогону `youtube-channels.db` не залишається.
-Файли 00-05 працюють нижче: DB-API, Engine і Core напряму.
+On import, `db.py` does `drop_all` + `create_all` + seed, so every file
+starts from a clean, identical database and the output of two files can
+be compared. Files 06-13 (the ones using the ORM) are all built the same
+way: each section is its own `with get_session()` (commit on block exit,
+rollback on exception), and the last line is `drop_db()`, so
+`youtube-channels.db` doesn't linger after a run. Files 00-05 work at a
+lower level: DB-API, Engine and Core directly.
 
-## Довідники
+## References
 
 | | |
 | --- | --- |
-| [ORM_CHEATSHEET.md](ORM_CHEATSHEET.md) | усі команди: що робить + приклад |
-| [column_definition.md](column_definition.md) | способи оголосити колонку, включно зі старим стилем |
+| [ORM_CHEATSHEET.md](ORM_CHEATSHEET.md) | every command: what it does + an example |
+| [column_definition.md](column_definition.md) | ways to declare a column, including the old style |
 
-> `05_session_basics.py` зараз падає: імпортує `make_engine`, якого в `db.py` немає.
+> `05_session_basics.py` currently fails: it imports `make_engine`, which
+> doesn't exist in `db.py`.
