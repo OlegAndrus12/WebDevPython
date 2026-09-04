@@ -12,6 +12,9 @@ concrete — run it, break it, read why it broke.
 ├── module02/   Docker, networking, and Docker Compose
 ├── module03/   HTTP by hand, with nothing but the standard library
 ├── module04/   asyncio, threads, and the limits of both
+├── module05/   SQLAlchemy 2.0 and Alembic
+├── module06/   A real app: Flask + SQLAlchemy + Alembic + Postgres
+├── module07/   The same app on FastAPI, async end to end
 ```
 
 **Conventions used throughout:**
@@ -195,5 +198,50 @@ Four rules that hold throughout the module:
    the entire skill.
 
 📋 Full topic list: **[module04/AGENDA.md](module04/AGENDA.md)**
+
+---
+
+# Module 05 — SQLAlchemy 2.0 and Alembic
+
+Three folders, all on the 2.0 API — `select()`, `session.execute()`, `Mapped[...]` — building from Core
+and the ORM to schema migrations to a second database. [module05/README.md](module05/README.md) has
+the quick-start commands.
+
+| # | Folder | New idea |
+| --- | --- | --- |
+| 1 | [sqlalchemy/](module05/sqlalchemy/) | Core and ORM on SQLite: engine, schema, models, sessions, CRUD, joins, many-to-many — 13 lessons |
+| 2 | [alembic_ex/](module05/alembic_ex/) | Migrations: `--autogenerate`, batch mode on SQLite, naming convention, full command reference |
+| 3 | [postgres/](module05/postgres/) | The same ORM code against Postgres in a container — only the URL changes |
+
+📋 Full topic list: **[module05/AGENDA.md](module05/AGENDA.md)**
+
+---
+
+# Module 06 — A real app: Flask + SQLAlchemy + Alembic + Postgres
+
+Where module05's pieces come together: **[cnn-website/](module06/cnn-website/)**, a news reader on
+[newsapi.org](https://newsapi.org/). Flask for the web layer, SQLAlchemy 2.0 for the data layer,
+Alembic for the schema, Postgres in Docker Compose — minimal MVT, three routes, two tables, and every
+query in one file. [cnn-website/README.md](module06/cnn-website/README.md) has the walkthrough.
+
+📋 Full topic list: **[module06/AGENDA.md](module06/AGENDA.md)**
+
+---
+
+# Module 07 — The same app on FastAPI, async end to end
+
+**[cnn-website/](module07/cnn-website/)** again, ported to FastAPI and taken async all the way down:
+`async def` routes, `AsyncSession`, `httpx.AsyncClient`, an async Alembic `env.py`. FastAPI's core
+ideas — routers, `Depends`-based dependency injection, request validation from type hints, Pydantic
+response models, docs generated for free at `/docs` — are each pointed at the file that shows them in
+[module07/README.md](module07/README.md). Also here: **[pydantic_ex/](module07/pydantic_ex/)**,
+Pydantic models on their own — validators, alias generators, strict vs. lax coercion.
+
+Going async is not a free speedup: the module's own benchmark shows no gain on the app's fast queries,
+and a real gain only once there is something worth waiting on. Going async does buy one hard rule for
+free: lazy-loading a relationship, harmless-but-slow under Flask, is a crash (`MissingGreenlet`) under
+`AsyncSession` — every relationship a route touches has to be eager-loaded up front.
+
+📋 Full topic list: **[module07/AGENDA.md](module07/AGENDA.md)**
 
 ---
