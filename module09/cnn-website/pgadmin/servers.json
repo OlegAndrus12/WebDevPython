@@ -1,0 +1,15 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "cnn (compose)",
+      "Group": "Servers",
+      "Comment": "Preloaded from pgadmin/servers.json. Host is the compose service name, so the port is 5432 (the in-network one), not the published 5437.",
+      "Host": "db",
+      "Port": 5432,
+      "MaintenanceDB": "cnn",
+      "Username": "admin",
+      "PassFile": "/var/lib/pgadmin/.pgpass",
+      "SSLMode": "prefer"
+    }
+  }
+}

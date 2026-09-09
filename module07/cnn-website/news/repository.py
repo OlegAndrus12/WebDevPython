@@ -1,10 +1,12 @@
+"""Every query in the project. Nothing else may import select()."""
+
 from __future__ import annotations
 
 from sqlalchemy import func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from .models import Article, Source, User
+from .models import Article, Source
 from .utils import like_escape, parse_published, slugify
 
 
@@ -20,7 +22,7 @@ class Repository:
         """
         articles = []
         for payload in payloads:
-            # NewsAPI returns redacted entries with url=None, and url is the natural key.
+            # NewsAPI returns redacted entries with url=None, and url is the key.
             if not payload.get("url"):
                 continue
             source = await self.save_source(payload.get("source") or {})
@@ -28,19 +30,18 @@ class Repository:
         return articles
 
     async def get_article_by_id(self, article_id: int) -> Article | None:
-        """One article with its source, or None for the 404."""
         return await self.session.scalar(
             select(Article)
             .where(Article.id == article_id)
-            # Mandatory, not an optimisation: a lazy load of `source` after this
-            # returns raises MissingGreenlet instead of costing a second query.
+            # Mandatory, not an optimisation: a later lazy load of `source`
+            # raises MissingGreenlet instead of costing a second query.
             .options(joinedload(Article.source))
         )
 
     async def list_articles(
         self, query: str | None = None, limit: int = 20, offset: int = 0
     ) -> tuple[list[Article], int]:
-        """One page of stored articles, newest first, plus the total that match."""
+        """One page of stored articles, newest first, plus the matching total."""
         where = []
         if query:
             pattern = f"%{like_escape(query)}%"
@@ -58,9 +59,8 @@ class Repository:
         result = await self.session.scalars(
             select(Article)
             .where(*where)
-            # The caller serialises article.source for every row.
             .options(joinedload(Article.source))
-            # id DESC tie-breaks: OFFSET over a non-unique order repeats and skips rows.
+            # id DESC tie-breaks: OFFSET over a non-unique order repeats rows.
             .order_by(Article.published_at.desc().nulls_last(), Article.id.desc())
             .limit(limit)
             .offset(offset)
@@ -86,9 +86,8 @@ class Repository:
         source = await self.session.scalar(select(Source).where(Source.slug == slug))
         if source is None:
             source = Source(slug=slug, name=payload.get("name") or slug)
-            # add() stays sync -- it only touches the in-memory identity map.
             self.session.add(source)
-            # flush, not commit: source.id must exist for the article referencing it.
+            # flush, not commit: source.id must exist for the article using it.
             await self.session.flush()
         return source
 
@@ -101,8 +100,8 @@ class Repository:
             article = Article(url=payload["url"])
             self.session.add(article)
 
-        # Assigned on both branches: otherwise reading article.source later is a
-        # lazy load on an async session, which raises rather than querying.
+        # Assigned on both branches: otherwise reading article.source later is
+        # a lazy load, which raises rather than querying.
         article.source = source
         article.title = payload.get("title") or "(untitled)"
         article.description = payload.get("description")
@@ -112,15 +111,3 @@ class Repository:
         article.published_at = parse_published(payload.get("publishedAt"))
         await self.session.flush()
         return article
-
-    async def get_user_by_email(self, email: str) -> User | None:
-        return await self.session.scalar(select(User).where(User.email == email))
-
-    async def get_user_by_username(self, username: str) -> User | None:
-        return await self.session.scalar(select(User).where(User.username == username))
-
-    async def create_user(self, username: str, email: str, hashed_password: str) -> User:
-        user = User(username=username, email=email, hashed_password=hashed_password)
-        self.session.add(user)
-        await self.session.flush()
-        return user

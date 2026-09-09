@@ -17,10 +17,5 @@ dependencies = [
     # postgresql+psycopg works under create_engine and create_async_engine alike.
     "psycopg[binary]>=3.3.4",
     "pydantic-settings>=2.10.1",
-    "pydantic[email]>=2.13.4",
-    "passlib[bcrypt]>=1.7.4",
-    # passlib 1.7.4 is unmaintained and its bcrypt backend self-test breaks
-    # against bcrypt>=4.1 (ValueError: password cannot be longer than 72
-    # bytes). Pin to the last release both compatible with passlib.
-    "bcrypt<4.1",
+    "pydantic>=2.13.4",
 ]

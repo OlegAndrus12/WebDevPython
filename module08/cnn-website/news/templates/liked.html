@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Liked articles · CNN Reader{% endblock %}
+
+{% block content %}
+<header class="page-head mb-4">
+    <h1 class="h3 mb-0">Liked articles</h1>
+</header>
+
+{# An empty shell. The server rendering this page cannot know whose likes to
+   list -- there is no session and the route takes no user id -- so likes.js
+   reads the picked reader from localStorage and fills #liked-list in from
+   GET /api/users/{user_id}/liked. #}
+<p id="liked-status" class="text-body-secondary">Loading…</p>
+
+<div id="liked-list" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4"></div>
+{% endblock %}

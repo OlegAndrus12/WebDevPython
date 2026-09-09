@@ -15,7 +15,12 @@ concrete — run it, break it, read why it broke.
 ├── module05/   SQLAlchemy 2.0 and Alembic
 ├── module06/   A real app: Flask + SQLAlchemy + Alembic + Postgres
 ├── module07/   The same app on FastAPI, async end to end
+├── module08/   A full REST surface: writes, sub-resources and relations
+├── module09/   JWT authentication
 ```
+
+Modules 06 to 09 are four iterations of **one** application — the same news reader, rebuilt as each
+new idea arrives. All four publish the same ports, so only one runs at a time.
 
 **Conventions used throughout:**
 
@@ -220,10 +225,20 @@ the quick-start commands.
 # Module 06 — A real app: Flask + SQLAlchemy + Alembic + Postgres
 
 Where module05's pieces come together: **[cnn-website/](module06/cnn-website/)**, a news reader on
-[newsapi.org](https://newsapi.org/). Flask for the web layer, SQLAlchemy 2.0 for the data layer,
-Alembic for the schema, Postgres in Docker Compose — minimal MVT, three routes, two tables, and every
-query in one file. [cnn-website/README.md](module06/cnn-website/README.md) has the walkthrough.
+[newsapi.org](https://newsapi.org/). Each visit to the front page asks NewsAPI for stories, stores
+them in Postgres, and renders them; every other route reads the database only.
 
+Flask for the web layer, SQLAlchemy 2.0 for the data layer, Alembic for the schema, Postgres in
+Docker Compose. Minimal MVT: **six routes, two tables**, and every query in one file. Validation and
+JSON serialisation are both written by hand here — `int_arg()` returns a `400`, `article_json()`
+spells out every field — which is exactly the work the next module hands to the framework.
+
+```bash
+cd module06/cnn-website && cp .env.example .env    # add your NewsAPI key
+docker compose up --build --wait                   # -> http://localhost:8080
+```
+
+📖 Setup, endpoints, curl examples and configuration: **[module06/README.md](module06/README.md)**
 📋 Full topic list: **[module06/AGENDA.md](module06/AGENDA.md)**
 
 ---
@@ -231,17 +246,83 @@ query in one file. [cnn-website/README.md](module06/cnn-website/README.md) has t
 # Module 07 — The same app on FastAPI, async end to end
 
 **[cnn-website/](module07/cnn-website/)** again, ported to FastAPI and taken async all the way down:
-`async def` routes, `AsyncSession`, `httpx.AsyncClient`, an async Alembic `env.py`. FastAPI's core
-ideas — routers, `Depends`-based dependency injection, request validation from type hints, Pydantic
-response models, docs generated for free at `/docs` — are each pointed at the file that shows them in
-[module07/README.md](module07/README.md). Also here: **[pydantic_ex/](module07/pydantic_ex/)**,
-Pydantic models on their own — validators, alias generators, strict vs. lax coercion.
+`async def` routes, `AsyncSession`, `httpx.AsyncClient`, an async Alembic `env.py`. Same six routes,
+same two tables — so what changed is only ever the framework.
 
-Going async is not a free speedup: the module's own benchmark shows no gain on the app's fast queries,
-and a real gain only once there is something worth waiting on. Going async does buy one hard rule for
-free: lazy-loading a relationship, harmless-but-slow under Flask, is a crash (`MissingGreenlet`) under
+FastAPI's core ideas each land somewhere visible: routers composed with `include_router`,
+`Depends`-based dependency injection, request validation from type hints (`Query(ge=1)` → `422`),
+Pydantic response models that let a route return an ORM object, and docs generated for free at
+`/docs`.
+
+Going async is not a free speedup. The module's own benchmark shows no gain on the app's fast
+queries and a 6.8× gain only once there is something worth waiting on. It does buy one hard rule:
+lazy-loading a relationship, harmless-but-slow under Flask, is a **crash** (`MissingGreenlet`) under
 `AsyncSession` — every relationship a route touches has to be eager-loaded up front.
 
+```bash
+cd module07/cnn-website && cp .env.example .env    # add your NewsAPI key
+docker compose up --build --wait                   # -> http://localhost:8080/docs
+```
+
+📖 Setup, endpoints, curl examples and configuration: **[module07/README.md](module07/README.md)**
 📋 Full topic list: **[module07/AGENDA.md](module07/AGENDA.md)**
 
 ---
+
+# Module 08 — A full REST surface: writes, sub-resources and relations
+
+**[cnn-website/](module08/cnn-website/)** grows the half of REST the read-only modules never showed.
+Alongside the article API there is now a **readers** resource with real `POST` / `PATCH` / `DELETE`,
+and a **likes** sub-resource joining readers to articles: **fifteen endpoints, four tables**.
+
+The status codes stop being incidental — `201` with the created object, `204` for a delete, `409`
+for a name already taken, `422` from `Path(ge=1)` before any query runs. `PATCH` is where it gets
+interesting: `model_dump(exclude_unset=True)` is what separates "the client omitted this field" from
+"the client sent null", and the uniqueness re-check has to skip a value that did not change, or
+patching a row with its own email conflicts with itself. On the data side, a **composite primary
+key** makes a duplicate like impossible in the schema rather than in the application, and
+`ON DELETE CASCADE` on the join table means deleting a reader takes their likes along.
+
+Nothing authenticates yet. The reader is named in the URL, and the browser picks one from a dropdown
+kept in `localStorage` — an explicit stand-in for a session, which makes the identity problem
+visible instead of solved. That problem is what module09 answers.
+
+```bash
+cd module08/cnn-website && cp .env.example .env    # add your NewsAPI key
+docker compose up --build --wait                   # -> http://localhost:8080/docs
+```
+
+📖 Setup, endpoints, curl examples and configuration: **[module08/README.md](module08/README.md)**
+📋 Full topic list: **[module08/AGENDA.md](module08/AGENDA.md)**
+
+---
+
+# Module 09 — JWT authentication
+
+**[cnn-website/](module09/cnn-website/)** with accounts. Registering stores a bcrypt hash, logging in
+returns a signed HS256 token, and every JSON endpoint refuses to answer without one. Likes become
+per-user, because there is finally a user to attach them to: **fifteen endpoints, four tables**.
+
+`get_current_user` is one dependency in `security.py`; any route that adds it is protected, and
+`/docs` grows a padlock for it. Around that sit the decisions worth arguing about in a lecture — a
+signed token is **not** an encrypted one (decode your own and read the claims); an unknown address
+and a wrong password must return the *same* message, or login becomes an account-enumeration oracle;
+and a bearer token cannot be revoked, which is why there is no logout endpoint and why the expiry is
+short. The OAuth2 password flow also brings its own oddity: the body is form-urlencoded, and the
+email travels in a field named `username`.
+
+One structural consequence runs through the whole front end: a cookie is attached automatically, an
+`Authorization` header is not, and no `<form method="post">` can set one. That single fact is what
+pushes `static/auth.js` into existence and turns every page into a shell the browser fills in.
+
+```bash
+cd module09/cnn-website && cp .env.example .env    # add your NewsAPI key
+openssl rand -hex 32                               # ...and a SECRET_KEY
+docker compose up --build --wait                   # -> http://localhost:8080/docs
+```
+
+📖 Setup, endpoints, curl examples and configuration: **[module09/README.md](module09/README.md)**
+📋 Full topic list: **[module09/AGENDA.md](module09/AGENDA.md)**
+
+---
+

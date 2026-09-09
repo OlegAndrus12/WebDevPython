@@ -1,22 +1,18 @@
-# Two services: the app and its database. Same shape as ../postgres/compose.yaml
-# (postgres:15, admin/admin, a pg_isready healthcheck, a named volume) with the
-# app added on top.
-#
-#   docker compose up --build --wait      app on http://localhost:8000
-#   docker compose --profile tools up -d  adds pgAdmin on http://localhost:5051
+name: cnn06
+
+#   docker compose up --build --wait   app on http://localhost:8080
 services:
   db:
     image: postgres:15
-    container_name: cnn_postgres
+    container_name: cnn06_postgres
     environment:
       POSTGRES_USER: ${DB_USER:-admin}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
       POSTGRES_DB: ${DB_NAME:-cnn}
     volumes:
-      - cnn_postgres_data:/var/lib/postgresql/data
-    # 5433, not 5432: ../postgres/compose.yaml already publishes 5432, and both
-    # stacks have to be able to run at the same time. Inside the compose
-    # network the port is still 5432 -- this only remaps the host side.
+      - cnn06_postgres_data:/var/lib/postgresql/data
+    # 5433 on the host, not 5432, to stay clear of a local Postgres. Inside
+    # the compose network the port is still 5432 -- this only remaps the host.
     ports:
       - "${DB_PORT:-5433}:5432"
     # `depends_on: condition: service_healthy` below is only meaningful because
@@ -31,7 +27,7 @@ services:
 
   web:
     build: .
-    container_name: cnn_web
+    container_name: cnn06_web
     # Brings in NEWS_API_KEY. The file is gitignored -- copy .env.example first.
     env_file: .env
     environment:
@@ -42,7 +38,7 @@ services:
       DB_HOST: db
       DB_PORT: 5432
     ports:
-      - "8000:8000"
+      - "8080:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -53,7 +49,7 @@ services:
       - .:/app
       # uv's download cache, so the `uv sync` in the command below is a no-op
       # on every start after the first rather than a re-download.
-      - cnn_uv_cache:/opt/uv-cache
+      - cnn06_uv_cache:/opt/uv-cache
     command: >
       sh -c "uv sync --frozen --no-install-project &&
       alembic upgrade head &&
@@ -65,11 +61,9 @@ services:
       retries: 10
       start_period: 10s
 
-  # Optional. Behind a profile, so a plain `up` does not start it.
   pgadmin:
     image: dpage/pgadmin4
-    container_name: cnn_pgadmin
-    profiles: ["tools"]
+    container_name: cnn06_pgadmin
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@gmail.com
       PGADMIN_DEFAULT_PASSWORD: admin
@@ -79,7 +73,7 @@ services:
       # Re-import servers.json on every start.
       PGADMIN_REPLACE_SERVERS_ON_STARTUP: "True"
     ports:
-      - "5051:80"
+      - "5050:80"
     volumes:
       # Preloads the `db` connection, so there is no "Register -> Server..."
       # dialog to fill in by hand.
@@ -88,7 +82,7 @@ services:
       - ./pgadmin/pgpass:/pgadmin4/pgpass.src:ro
       # Named, so it is visible in `docker volume ls` and removed by
       # `down -v`.
-      - cnn_pgadmin_data:/var/lib/pgadmin
+      - cnn06_pgadmin_data:/var/lib/pgadmin
     entrypoint: >
       /bin/sh -c "cp /pgadmin4/pgpass.src /var/lib/pgadmin/.pgpass &&
       chmod 600 /var/lib/pgadmin/.pgpass &&
@@ -98,7 +92,7 @@ services:
         condition: service_healthy
 
 volumes:
-  cnn_postgres_data:
+  cnn06_postgres_data:
   # Named, not anonymous, so it survives `docker compose down` and a rebuild.
-  cnn_uv_cache:
-  cnn_pgadmin_data:
+  cnn06_uv_cache:
+  cnn06_pgadmin_data:

@@ -14,7 +14,6 @@ from ..repository import Repository
 from ..utils import domain
 
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent.parent / "templates")
-# The `| domain` filter the templates use for link labels.
 templates.env.filters["domain"] = domain
 
 # response_class on the router: without it FastAPI documents these as JSON.
@@ -35,8 +34,6 @@ async def index(request: Request, session: SessionDep, q: str = ""):
     else:
         articles = await Repository(session).save_articles(payloads)
 
-    # Rendering stays sync -- Jinja templates are CPU work, not I/O, and every
-    # attribute the template touches is already loaded.
     return templates.TemplateResponse(
         request,
         "index.html",

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}{{ query or "Top headlines" }} · CNN Reader{% endblock %}
+
+{% block content %}
+    {% if error %}
+    {# The app this is modelled on had no error path at all: a NewsAPI failure
+       raised out of the view and Flask returned a 500 page. #}
+    <div class="alert alert-warning" role="alert">
+        <strong>NewsAPI said no.</strong> {{ error }}
+    </div>
+    {% endif %}
+
+    <header class="page-head mb-4">
+        <h1 class="h3 mb-0">
+            {% if query %}Results for “{{ query }}”{% else %}Top headlines{% endif %}
+        </h1>
+    </header>
+
+    {% if articles %}
+        {# The first story gets the full width and a large image. #}
+        <div class="mb-4">
+            {% with article = articles[0], lead = true %}
+                {% include "_card.html" %}
+            {% endwith %}
+        </div>
+
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for article in articles[1:] %}
+            <div class="col">{% include "_card.html" %}</div>
+            {% endfor %}
+        </div>
+    {% elif not error %}
+        {# The reference rendered an empty grid and no explanation. #}
+        <div class="empty-state text-center py-5">
+            <p class="h5">Nothing here.</p>
+            <p class="text-body-secondary">
+                {% if query %}No stories matched “{{ query }}”.{% else %}No headlines came back.{% endif %}
+            </p>
+            {% if query %}
+            <a class="btn btn-accent" href="{{ url_for('index') }}">Back to headlines</a>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endblock %}

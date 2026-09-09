@@ -19,7 +19,7 @@ cnn-website/
     templates/        base, index, article, _card
     static/styles.css
   migrations/         Alembic: env.py + two revisions
-  docker-compose.yaml db + web + optional pgAdmin
+  docker-compose.yaml db + web + pgAdmin
 ```
 
 **Stack:** Flask 3.1 · SQLAlchemy 2.0 (sync) · Alembic 1.19 · psycopg 3 ·
@@ -40,13 +40,26 @@ cp .env.example .env          # then put your key in NEWS_API_KEY
 ### Everything in Docker
 
 ```bash
-docker compose up --build --wait      # -> http://localhost:8000
+docker compose up --build --wait
 ```
 
-`--wait` blocks until both healthchecks pass and exits non-zero if they do not,
-so it is safe to chain a `curl` after it. Migrations run automatically on
+`--wait` blocks until every healthcheck passes and exits non-zero if one does
+not, so it is safe to chain a `curl` after it. Migrations run automatically on
 container start — the `command:` in `docker-compose.yaml` is
 `uv sync && alembic upgrade head && flask run`.
+
+### Open it in a browser
+
+| | |
+| --- | --- |
+| the reader | <http://localhost:8080> |
+| pgAdmin | <http://localhost:5050> — `admin@gmail.com` / `admin` |
+
+Open <http://localhost:8080> and you land on the headlines. The navbar's topic
+links and search box both re-query NewsAPI; clicking a card's title opens the
+detail page, which is rendered from the database. pgAdmin takes about 25
+seconds to finish booting and has the `db` connection preloaded, so there is no
+"Register → Server…" dialog to fill in.
 
 ### App on the host, database in Docker
 
@@ -67,18 +80,18 @@ a service name rather than a published port.
 
 | service | container | host port | what it is |
 | --- | --- | --- | --- |
-| `web` | `cnn_web` | 8000 | the Flask app under the dev server |
-| `db` | `cnn_postgres` | 5433 | Postgres 15 (`5432` inside the network) |
-| `pgadmin` | `cnn_pgadmin` | 5051 | optional, behind a profile |
+| `web` | `cnn06_web` | 8080 | the Flask app under the dev server |
+| `db` | `cnn06_postgres` | 5433 | Postgres 15 (`5432` inside the network) |
+| `pgadmin` | `cnn06_pgadmin` | 5050 | <http://localhost:5050> |
 
-pgAdmin does not start with a plain `up` — it sits behind a Compose profile:
+All three start with a plain `docker compose up`. pgAdmin logs in with
+`admin@gmail.com` / `admin`, and its `db` connection is preloaded from
+`pgadmin/servers.json`.
 
-```bash
-docker compose --profile tools up -d      # -> http://localhost:5051
-```
-
-Log in with `admin@gmail.com` / `admin`. The `db` connection is preloaded from
-`pgadmin/servers.json`, so there is no "Register → Server…" dialog to fill in.
+`name: cnn06` at the top of `docker-compose.yaml` is load-bearing. Compose
+otherwise derives the project name from the directory, and more than one
+project on this machine is called `cnn-website` — without an explicit name a
+`docker compose up` could adopt another stack's containers and volumes.
 
 ### Everyday commands
 
@@ -193,11 +206,11 @@ Notes worth knowing before you rely on them:
 
 ## Testing it with curl
 
-Against the Compose stack on port 8000. If you are running on the host with
+Against the Compose stack on port 8080. If you are running on the host with
 `flask run`, use `localhost:5000` instead.
 
 ```bash
-B=localhost:8000
+B=localhost:8080
 ```
 
 **Is it up, and can it reach the database?**
@@ -386,8 +399,8 @@ rm -rf .venv && uv sync       # the fix
 **`ValidationError: news_api_key Field required` at startup.** There is no
 `.env`, or it has no key in it. `cp .env.example .env` and fill it in.
 
-**Port 8000 or 5433 already in use.** Something else is bound. Override on the
-host side without editing the file:
+**Port 8080, 5433 or 5050 already in use.** Something else is bound. The
+database port can be overridden on the host side without editing the file:
 
 ```bash
 DB_PORT=5533 docker compose up -d --wait db
@@ -404,7 +417,7 @@ Postgres.
 for that source or query. Try `?q=` with a common word, or check
 `DEFAULT_SOURCE`.
 
-**`docker compose up` seems to adopt another project's containers.** Compose
-derives the project name from the directory, and this one is `cnn-website`. If
-you copy this folder somewhere that also has a `cnn-website` directory, add an
-explicit `name:` at the top of `docker-compose.yaml`.
+**`docker compose up` seems to adopt another project's containers.** Check
+that `name: cnn06` is still at the top of `docker-compose.yaml`; without it
+Compose derives the project name from the directory, which is `cnn-website`
+here and in several sibling projects.

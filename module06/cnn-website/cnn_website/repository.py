@@ -1,3 +1,5 @@
+"""Every query in the project. Nothing else may import select()."""
+
 from __future__ import annotations
 
 from sqlalchemy import func, or_, select, text
@@ -24,6 +26,8 @@ class Repository:
         return self.session.scalar(
             select(Article)
             .where(Article.id == article_id)
+            # joinedload, so reading article.source later is not a second
+            # query -- the N+1 this whole file exists to keep in one place.
             .options(joinedload(Article.source))
         )
 

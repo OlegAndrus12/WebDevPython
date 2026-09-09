@@ -1,3 +1,4 @@
+"""Engine and session. The schema is Alembic's job -- no create_all() here."""
 
 from contextlib import contextmanager
 
@@ -6,14 +7,15 @@ from sqlalchemy.orm import sessionmaker
 
 from .settings import settings
 
-# Engine == connection pool + dialect knowledge. One per process, created at
-# import; it does not connect until someone asks for a connection.
+# Engine == connection pool + dialect. One per process, created at import; it
+# does not connect until someone asks for a connection.
 engine = create_engine(settings.database_url, echo=False, pool_pre_ping=True)
 SessionLocal = sessionmaker(engine, expire_on_commit=False)
 
 
 @contextmanager
 def get_session():
+    """One transaction: commit on a clean exit, roll back on an exception."""
     session = SessionLocal()
     try:
         yield session

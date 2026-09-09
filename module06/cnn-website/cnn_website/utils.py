@@ -30,7 +30,9 @@ def int_arg(
     minimum: int,
     maximum: int | None = None,
 ) -> int:
-    """One query parameter as a bounded int. Raises ValueError with a message for the body."""
+    """One query parameter as a bounded int. Raises ValueError with a message
+    meant for the response body.
+    """
     if raw is None or raw == "":
         return default
 

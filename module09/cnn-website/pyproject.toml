@@ -1,0 +1,28 @@
+[project]
+name = "cnn-website"
+version = "0.3.0"
+description = "Async FastAPI + SQLAlchemy asyncio + Alembic news reader on the NewsAPI"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "jinja2>=3.1.4",
+    "httpx>=0.27.2",
+    # [asyncio] pulls in greenlet, which SQLAlchemy needs to run its sync
+    # internals under an event loop. Without it, the async engine will not build.
+    "sqlalchemy[asyncio]>=2.0.43",
+    "alembic>=1.16.5",
+    # psycopg 3 is both a sync and an async driver, so the URL does not change:
+    # postgresql+psycopg works under create_engine and create_async_engine alike.
+    "psycopg[binary]>=3.3.4",
+    "pydantic-settings>=2.10.1",
+    "pydantic[email]>=2.13.4",
+    "passlib[bcrypt]>=1.7.4",
+    # passlib 1.7.4 is unmaintained and its bcrypt backend self-test breaks
+    # against bcrypt>=4.1 (ValueError: password cannot be longer than 72
+    # bytes). Pin to the last release both compatible with passlib.
+    "bcrypt<4.1",
+    "python-jose[cryptography]>=3.5.0",
+    "python-multipart>=0.0.32",
+]

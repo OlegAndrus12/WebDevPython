@@ -1,3 +1,5 @@
+"""A thin client for newsapi.org. No Flask here, no SQLAlchemy either."""
+
 from __future__ import annotations
 
 import requests
@@ -24,8 +26,8 @@ def top_headlines() -> list[dict]:
 def search(query: str) -> list[dict]:
     """Search everything NewsAPI indexes, newest first.
 
-    Note for the free plan: /everything only reaches articles older than 24
-    hours, so a story on the front page may be missing from a search for it.
+    On the free plan /everything only reaches articles older than 24 hours,
+    so a story on the front page may be missing from a search for it.
     """
     return _get(
         "everything",
@@ -44,6 +46,8 @@ def _get(endpoint: str, params: dict) -> list[dict]:
         response = requests.get(
             f"{settings.news_api_url}/{endpoint}",
             params=params,
+            # The key travels in a header, not `?apiKey=`: query strings end up
+            # in access logs, proxy caches and browser history.
             headers={"X-Api-Key": settings.news_api_key.get_secret_value()},
             timeout=10.0,
         )
@@ -56,6 +60,8 @@ def _get(endpoint: str, params: dict) -> list[dict]:
     except ValueError as exc:
         raise NewsAPIError("NewsAPI returned a non-JSON response") from exc
 
+    # NewsAPI also returns 200 with an error body, so the status code alone
+    # cannot tell success from failure.
     if payload.get("status") != "ok":
         raise NewsAPIError(
             payload.get("message", "NewsAPI returned an error"), payload.get("code")

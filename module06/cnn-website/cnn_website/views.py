@@ -89,7 +89,7 @@ def api_articles():
 
 @app.get("/api/articles/<int:article_id>")
 def api_article(article_id: int):
-    """The same row the HTML page renders, as JSON. Reads the database only."""
+    """The same row the HTML page renders, as JSON."""
     with get_session() as session:
         article = Repository(session).get_article_by_id(article_id)
         if article is None:

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Log in · CNN Reader{% endblock %}
+
+{% block content %}
+<div class="auth-form mx-auto">
+    <h1 class="h3 mb-4">Log in</h1>
+
+    <div id="auth-error" class="alert alert-danger d-none" role="alert"></div>
+
+    {# id="login-form" is what auth.js hooks: it intercepts submit, POSTs to
+       /api/auth/login itself, and stores the bearer token -- a plain HTML
+       form POST here would get a JSON response back instead of a redirect. #}
+    <form id="login-form" novalidate>
+        <div class="mb-3">
+            <label class="form-label" for="email">Email</label>
+            {# name="username", not "email" -- that's the field name
+               OAuth2PasswordRequestForm expects on POST /api/auth/login. #}
+            <input class="form-control" type="email" id="email" name="username"
+                   autocomplete="username" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="password">Password</label>
+            <input class="form-control" type="password" id="password" name="password"
+                   autocomplete="current-password" required>
+        </div>
+        <button class="btn btn-accent w-100" type="submit">Log in</button>
+    </form>
+
+    <p class="mt-3 small">No account? <a href="{{ url_for('register') }}">Register</a></p>
+</div>
+{% endblock %}

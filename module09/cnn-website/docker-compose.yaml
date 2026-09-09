@@ -1,0 +1,85 @@
+name: cnn09
+
+services:
+  db:
+    image: postgres:15
+    container_name: cnn09_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
+      POSTGRES_DB: ${DB_NAME:-cnn}
+    volumes:
+      - cnn09_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-admin} -d ${DB_NAME:-cnn}"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+      start_period: 5s
+  api:
+    build: .
+    container_name: cnn09_api
+    env_file: .env
+    environment:
+      # `db` is the service name, which is its hostname on the compose network.
+      DB_HOST: db
+      DB_PORT: 5432
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8000"
+    volumes:
+      # Bind-mount the source so a save on the host reaches the container --
+      # the Dockerfile's `COPY . .` only ever ran once, at image build time.
+      - .:/app
+      # uv's download cache, so the `uv sync` in the command below is a no-op
+      # on every start after the first rather than a re-download.
+      - cnn09_uv_cache:/opt/uv-cache
+    command: >
+      sh -c "uv sync --frozen --no-install-project &&
+      alembic upgrade head &&
+      uvicorn news:app --host 0.0.0.0 --port 8000 --reload --reload-dir news"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: cnn09_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      # Skips the "enter your master password" prompt on every start. Safe
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+      # Re-import servers.json on every start. 
+      PGADMIN_REPLACE_SERVERS_ON_STARTUP: "True"
+    ports:
+      - "5050:80"
+    volumes:
+      # Preloads the `db` connection, so there is no "Register -> Server..."
+      # dialog to fill in by hand.
+      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+      # Copied into place by the entrypoint below, not used from here.
+      - ./pgadmin/pgpass:/pgadmin4/pgpass.src:ro
+      # Named, so it is visible in `docker volume ls` and removed by
+      # `down -v`.
+      - cnn09_pgadmin_data:/var/lib/pgadmin
+    entrypoint: >
+      /bin/sh -c "cp /pgadmin4/pgpass.src /var/lib/pgadmin/.pgpass &&
+      chmod 600 /var/lib/pgadmin/.pgpass &&
+      exec /entrypoint.sh"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  cnn09_postgres_data:
+  # Named, not anonymous, so it survives `docker compose down` and a rebuild.
+  cnn09_uv_cache:
+  cnn09_pgadmin_data:
