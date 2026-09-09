@@ -321,7 +321,8 @@ Compose overrides the database host without editing a file.
 | `PAGE_SIZE` | `12` | how many articles to request **from NewsAPI** |
 | `SECRET_KEY` | `dev-only-not-a-real-secret` | Flask session cookies |
 
-`.env` is gitignored; `.env.example` is not.
+Both `.env` and `.env.example` are committed in this repo, so keep anything
+genuinely secret out of both — the values checked in are throwaway.
 
 ---
 

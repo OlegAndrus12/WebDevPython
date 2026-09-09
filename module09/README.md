@@ -416,7 +416,8 @@ commented in `.env.example`.
 | `DEFAULT_SOURCE` | `cnn` | which NewsAPI source the front page shows |
 | `PAGE_SIZE` | `12` | how many articles to request **from NewsAPI** |
 
-`.env` is gitignored; `.env.example` is not.
+Both `.env` and `.env.example` are committed in this repo, so keep anything
+genuinely secret out of both — the values checked in are throwaway.
 
 ---
 
