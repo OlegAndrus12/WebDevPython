@@ -46,9 +46,18 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      # Bind-mount the source so a save on the host reaches the container --
+      # the Dockerfile's `COPY . .` only ever ran once, at image build time.
+      # The venv is at /opt/venv (see the Dockerfile), out of the mount's way.
+      - .:/app
+      # uv's download cache, so the `uv sync` in the command below is a no-op
+      # on every start after the first rather than a re-download.
+      - cnn_uv_cache:/opt/uv-cache
     command: >
-      sh -c "alembic upgrade head &&
-      flask --app cnn_website run --host 0.0.0.0 --port 8000"
+      sh -c "uv sync --frozen --no-install-project &&
+      alembic upgrade head &&
+      flask --app cnn_website run --host 0.0.0.0 --port 8000 --debug"
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')\""]
       interval: 5s
@@ -65,11 +74,31 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@gmail.com
       PGADMIN_DEFAULT_PASSWORD: admin
       PGADMIN_CONFIG_SERVER_MODE: "False"
+      # Skips the "enter your master password" prompt on every start.
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+      # Re-import servers.json on every start.
+      PGADMIN_REPLACE_SERVERS_ON_STARTUP: "True"
     ports:
       - "5051:80"
+    volumes:
+      # Preloads the `db` connection, so there is no "Register -> Server..."
+      # dialog to fill in by hand.
+      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+      # Copied into place by the entrypoint below, not used from here.
+      - ./pgadmin/pgpass:/pgadmin4/pgpass.src:ro
+      # Named, so it is visible in `docker volume ls` and removed by
+      # `down -v`.
+      - cnn_pgadmin_data:/var/lib/pgadmin
+    entrypoint: >
+      /bin/sh -c "cp /pgadmin4/pgpass.src /var/lib/pgadmin/.pgpass &&
+      chmod 600 /var/lib/pgadmin/.pgpass &&
+      exec /entrypoint.sh"
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   cnn_postgres_data:
+  # Named, not anonymous, so it survives `docker compose down` and a rebuild.
+  cnn_uv_cache:
+  cnn_pgadmin_data:
