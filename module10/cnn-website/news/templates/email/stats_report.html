@@ -1,0 +1,79 @@
+{# The daily stats report, for admins. Same rules as the other two email
+   templates: extends nothing, no url_for, inline styles only -- fastapi-mail
+   renders this through its own Jinja environment, and `host` comes from
+   settings.public_base_url because a worker has no request to ask.
+
+   `stats` is the same Stats model GET /api/stats returns, built by the same
+   site_stats() call, so this table and that endpoint cannot disagree. #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>CNN Reader stats</title>
+</head>
+<body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #1a1a1a;">
+<p>Hi {{ username }},</p>
+
+<p>Today's numbers for <strong>CNN Reader</strong>:</p>
+
+<p style="font-size: 1.1em;">
+    <strong>{{ stats.total_articles }}</strong> articles from
+    <strong>{{ stats.total_sources }}</strong>
+    {{ 'source' if stats.total_sources == 1 else 'sources' }}.
+</p>
+
+{% if stats.sources %}
+    {# A table, not flexbox: Outlook renders mail through Word, which has no
+       useful flexbox support. #}
+    <table cellpadding="0" cellspacing="0" border="0"
+           style="border-collapse: collapse; margin: 18px 0; min-width: 320px;">
+        <thead>
+        <tr>
+            <th style="text-align: left; padding: 6px 16px 6px 0; border-bottom: 2px solid #1a1a1a;
+                       font-size: 0.85em; text-transform: uppercase; letter-spacing: .04em;">
+                Source
+            </th>
+            <th style="text-align: right; padding: 6px 0; border-bottom: 2px solid #1a1a1a;
+                       font-size: 0.85em; text-transform: uppercase; letter-spacing: .04em;">
+                Articles
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for source in stats.sources %}
+            <tr>
+                <td style="padding: 7px 16px 7px 0; border-bottom: 1px solid #e5e5e5;">
+                    {{ source.name }}
+                    <span style="color: #767676; font-size: 0.85em;">({{ source.slug }})</span>
+                </td>
+                <td style="padding: 7px 0; border-bottom: 1px solid #e5e5e5;
+                           text-align: right; font-variant-numeric: tabular-nums;">
+                    {{ source.articles }}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p style="color: #767676;">No sources stored yet.</p>
+{% endif %}
+
+<p>
+    <a href="{{ host }}"
+       style="display: inline-block; padding: 10px 18px; background: #cc0000;
+              color: #ffffff; text-decoration: none; border-radius: 4px;">
+        Open CNN Reader
+    </a>
+</p>
+
+{# No unsubscribe link, and none is owed: this is not a mailing list. It goes
+   to accounts whose role is admin, so the way to stop receiving it is to stop
+   being an admin. #}
+<p style="font-size: 0.85em; color: #767676; margin-top: 28px;">
+    You are getting this because your account has the <strong>admin</strong>
+    role.
+</p>
+
+<p style="font-size: 0.85em; color: #767676;">— CNN Reader</p>
+</body>
+</html>

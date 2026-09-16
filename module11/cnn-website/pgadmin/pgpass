@@ -1,0 +1,4 @@
+# hostname:port:database:username:password -- libpq's password file format.
+# `db` and 5432 because pgAdmin connects from inside the compose network.
+# Matches DB_USER/DB_PASSWORD/DB_NAME in .env; if you change those, change this.
+db:5432:*:admin:admin

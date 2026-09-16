@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Confirm your email · CNN Reader{% endblock %}
+
+{% block content %}
+<div class="auth-form mx-auto">
+    <h1 class="h3 mb-4">Confirming your email</h1>
+
+    {# Another empty shell. The token is in the query string rather than the
+       path, so this page renders without the server reading it at all -- and
+       the server could not usefully act on it here anyway: confirming lives
+       behind GET /api/auth/confirmed_email/{token}, which auth.js calls. #}
+    <p id="verify-status" class="text-body-secondary" role="status">Confirming…</p>
+
+    {# Shown on success. #}
+    <p id="verify-next" class="mt-3 d-none">
+        <a class="btn btn-accent" href="{{ url_for('login') }}">Log in</a>
+    </p>
+
+    {# Shown when the token is expired, malformed, or of the wrong kind -- all
+       of which are fixed the same way, by sending a new link. #}
+    <div id="resend-block" class="alert alert-warning mt-3 d-none">
+        <p class="mb-2 small">That link is no longer usable. Enter your address and
+            we will send a fresh one.</p>
+        <form id="resend-form" class="d-flex gap-2" novalidate>
+            <input class="form-control form-control-sm" type="email" name="email"
+                   aria-label="Email to resend the confirmation link to" required>
+            <button class="btn btn-sm btn-accent flex-shrink-0" type="submit">Resend</button>
+        </form>
+        <p id="resend-status" class="mb-0 mt-2 small d-none" role="status"></p>
+    </div>
+</div>
+{% endblock %}

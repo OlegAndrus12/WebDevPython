@@ -1,0 +1,30 @@
+[project]
+name = "cnn-website"
+version = "0.3.0"
+description = "Async FastAPI + SQLAlchemy asyncio + Alembic news reader on the NewsAPI"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "jinja2>=3.1.4",
+    "httpx>=0.27.2",
+    "sqlalchemy[asyncio]>=2.0.43",
+    "alembic>=1.16.5",
+    "psycopg[binary]>=3.3.4",
+    "pydantic-settings>=2.10.1",
+    "passlib[bcrypt]>=1.7.4",
+    "bcrypt>=4.0.1,<4.1",
+    "python-jose[cryptography]>=3.5.0",
+    "python-multipart>=0.0.9",
+    "email-validator>=2.0",
+    "fastapi-mail>=1.5.0",
+    "redis[hiredis]>=5.0",
+    "celery[redis]>=5.4",
+    "flower>=2.0",
+]
+
+[dependency-groups]
+dev = [
+    "fastapi-debug-toolbar>=0.6.3",
+]

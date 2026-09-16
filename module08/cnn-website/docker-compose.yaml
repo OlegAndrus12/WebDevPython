@@ -11,7 +11,7 @@ services:
     volumes:
       - cnn08_postgres_data:/var/lib/postgresql/data
     ports:
-      - "${DB_PORT:-5433}:5432"
+      - "${DB_PORT:-5408}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-admin} -d ${DB_NAME:-cnn}"]
       interval: 2s
@@ -30,7 +30,7 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "8080:8000"
+      - "8008:8000"
     volumes:
       # Bind-mount the source so a save on the host reaches the container --
       # the Dockerfile's `COPY . .` only ever ran once, at image build time.
@@ -60,7 +60,7 @@ services:
       # Re-import servers.json on every start. 
       PGADMIN_REPLACE_SERVERS_ON_STARTUP: "True"
     ports:
-      - "5050:80"
+      - "5108:80"
     volumes:
       # Preloads the `db` connection, so there is no "Register -> Server..."
       # dialog to fill in by hand.

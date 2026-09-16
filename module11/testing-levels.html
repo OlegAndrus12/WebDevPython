@@ -1,0 +1,1021 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unit, Integration, E2E, Load — Four Kinds of Test</title>
+<style>
+  :root {
+    --bg:#0d1117; --panel:#161b22; --panel-2:#1c2330; --line:#30363d;
+    --fg:#e6edf3; --muted:#9aa7b4; --faint:#6e7781;
+    --unit:#3fb950; --integ:#58a6ff; --e2e:#bc8cff; --load:#f0883e;
+    --accent:var(--integ);
+  }
+  html[data-theme="light"] {
+    --bg:#ffffff; --panel:#f6f8fa; --panel-2:#eef1f5; --line:#d0d7de;
+    --fg:#1f2328; --muted:#57606a; --faint:#8c959f;
+    --unit:#1a7f37; --integ:#0969da; --e2e:#8250df; --load:#bc4c00;
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; padding:0; height:100%; }
+  body {
+    background:var(--bg); color:var(--fg);
+    font:16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  code, pre, .mono { font-family:"SF Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+  /* ---------- deck chrome ---------- */
+  .deck { height:100vh; overflow:hidden; }
+  .slide {
+    display:none; height:100vh; width:100%;
+    padding: clamp(28px, 4.2vh, 56px) clamp(20px, 4vw, 72px) clamp(56px, 7vh, 84px);
+    overflow:auto;
+  }
+  .slide.active { display:flex; flex-direction:column; justify-content:center; }
+  .inner { width:100%; max-width:1180px; margin:0 auto; }
+
+  .bar {
+    position:fixed; left:0; right:0; bottom:0; height:44px;
+    display:flex; align-items:center; gap:14px;
+    padding:0 clamp(14px,3vw,28px);
+    background:var(--bg); border-top:1px solid var(--line);
+    font-size:12px; color:var(--muted); z-index:40;
+  }
+  .bar .spacer { flex:1; }
+  .bar b { color:var(--fg); font-weight:600; }
+  .bar button {
+    background:var(--panel); color:var(--muted); border:1px solid var(--line);
+    border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer; font-family:inherit;
+  }
+  .bar button:hover { color:var(--fg); border-color:var(--faint); }
+  .prog { position:fixed; top:0; left:0; height:2px; background:var(--accent); z-index:50; transition:width .18s ease; }
+  kbd {
+    font-family:"SF Mono", ui-monospace, monospace; font-size:11px;
+    border:1px solid var(--line); border-bottom-width:2px; border-radius:4px;
+    padding:1px 5px; background:var(--panel); color:var(--muted);
+  }
+
+  /* ---------- typography ---------- */
+  h1 { font-size:clamp(30px,4.6vw,56px); line-height:1.08; margin:0 0 18px; letter-spacing:-.022em; font-weight:700; }
+  h2 { font-size:clamp(23px,2.9vw,36px); line-height:1.15; margin:0 0 6px; letter-spacing:-.018em; font-weight:650; }
+  h3 { font-size:15px; margin:0 0 8px; font-weight:650; letter-spacing:-.005em; }
+  .eyebrow {
+    font-size:11.5px; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--muted); font-weight:650; margin:0 0 12px;
+  }
+  .sub { font-size:clamp(14px,1.45vw,18px); color:var(--muted); margin:0 0 26px; max-width:80ch; line-height:1.5; }
+  .lead { font-size:clamp(16px,1.7vw,21px); line-height:1.5; max-width:70ch; }
+  p { margin:0 0 12px; }
+  .dim { color:var(--muted); }
+  .tiny { font-size:12.5px; color:var(--muted); line-height:1.5; }
+
+  /* ---------- building blocks ---------- */
+  .grid { display:grid; gap:14px; }
+  .g2 { grid-template-columns:repeat(2,1fr); }
+  .g3 { grid-template-columns:repeat(3,1fr); }
+  .g4 { grid-template-columns:repeat(4,1fr); }
+  .split { display:grid; grid-template-columns:1.15fr .85fr; gap:26px; align-items:start; }
+
+  .card {
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:10px; padding:16px 18px;
+  }
+  .card.t-unit  { border-top:3px solid var(--unit); }
+  .card.t-integ { border-top:3px solid var(--integ); }
+  .card.t-e2e   { border-top:3px solid var(--e2e); }
+  .card.t-load  { border-top:3px solid var(--load); }
+  .card p:last-child { margin-bottom:0; }
+
+  .tag {
+    display:inline-block; font-size:10.5px; letter-spacing:.09em; text-transform:uppercase;
+    font-weight:700; padding:2px 8px; border-radius:999px; margin-bottom:9px;
+  }
+  .tag.unit  { color:var(--unit);  background:color-mix(in srgb, var(--unit) 15%, transparent); }
+  .tag.integ { color:var(--integ); background:color-mix(in srgb, var(--integ) 15%, transparent); }
+  .tag.e2e   { color:var(--e2e);   background:color-mix(in srgb, var(--e2e) 15%, transparent); }
+  .tag.load  { color:var(--load);  background:color-mix(in srgb, var(--load) 15%, transparent); }
+
+  .c-unit{color:var(--unit)} .c-integ{color:var(--integ)} .c-e2e{color:var(--e2e)} .c-load{color:var(--load)}
+
+  pre {
+    background:var(--panel-2); border:1px solid var(--line); border-radius:8px;
+    padding:12px 14px; overflow-x:auto; font-size:12.5px; line-height:1.55; margin:0 0 12px;
+  }
+  pre .cm { color:var(--faint); }
+  pre .kw { color:var(--e2e); }
+  pre .st { color:var(--unit); }
+  pre .fn { color:var(--integ); }
+
+  ul { margin:0 0 12px; padding-left:19px; }
+  li { margin-bottom:6px; }
+  li::marker { color:var(--faint); }
+
+  table { border-collapse:collapse; width:100%; font-size:13.5px; }
+  th, td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); font-weight:650; }
+  td:first-child { color:var(--muted); font-weight:600; white-space:nowrap; }
+  tbody tr:hover { background:var(--panel); }
+
+  figure { margin:0; }
+  figcaption { font-size:12.5px; color:var(--muted); margin-top:10px; line-height:1.5; }
+  svg { max-width:100%; height:auto; display:block; margin:0 auto; }
+
+  /* SVG shared classes */
+  .s-box  { fill:var(--panel); stroke:var(--line); stroke-width:1.5; }
+  .s-lab  { fill:var(--fg); font-size:13px; font-family:inherit; }
+  .s-lab-s{ fill:var(--muted); font-size:11.5px; font-family:inherit; }
+  .s-mono { font-family:"SF Mono", ui-monospace, monospace; font-size:11.5px; fill:var(--muted); }
+  .s-line { stroke:var(--fg); stroke-width:1.6; fill:none; }
+  .s-ghost{ stroke:var(--faint); stroke-width:1.5; fill:none; stroke-dasharray:5 4; }
+
+  .callout {
+    border-left:3px solid var(--accent); background:var(--panel);
+    padding:12px 16px; border-radius:0 8px 8px 0; font-size:14px; line-height:1.55;
+  }
+  .callout strong { color:var(--fg); }
+
+  .kv { display:flex; gap:10px; font-size:13px; margin-bottom:5px; }
+  .kv span:first-child { color:var(--muted); min-width:84px; flex-shrink:0; }
+
+  /* ---------- overview grid ---------- */
+  body.overview .deck { overflow:auto; height:auto; display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:14px; padding:18px 18px 70px; }
+  body.overview .slide {
+    display:block !important; height:230px; overflow:hidden; padding:14px;
+    border:1px solid var(--line); border-radius:8px; background:var(--panel);
+    cursor:pointer; position:relative; zoom:.44;
+  }
+  body.overview .slide:hover { border-color:var(--accent); }
+  body.overview .slide.active { outline:2px solid var(--accent); }
+  body.overview .inner { max-width:none; }
+
+  @media (max-width: 880px) {
+    .split, .g2, .g3, .g4 { grid-template-columns:1fr; }
+  }
+  @media print {
+    .bar, .prog { display:none; }
+    .slide { display:flex !important; flex-direction:column; justify-content:center;
+             height:100vh; page-break-after:always; break-after:page; }
+  }
+</style>
+</head>
+<body>
+<div class="prog" id="prog"></div>
+<div class="deck" id="deck">
+
+<!-- ============ 1 · TITLE ============ -->
+<section class="slide active">
+  <div class="inner">
+    <p class="eyebrow">Software Testing</p>
+    <h1>Unit · Integration · End&#8209;to&#8209;End · Load</h1>
+    <p class="sub" style="font-size:clamp(15px,1.7vw,21px)">
+      Four kinds of test that sound like four sizes of the same thing. They are not.
+      Three of them ask <em>is it correct?</em> and differ only in <strong>how much of the system is real</strong>.
+      The fourth asks a different question entirely.
+    </p>
+    <div class="grid g4" style="margin-top:8px">
+      <div class="card t-unit"><span class="tag unit">Unit</span>
+        <p class="tiny">One piece, alone. Everything it touches is faked.</p></div>
+      <div class="card t-integ"><span class="tag integ">Integration</span>
+        <p class="tiny">Several pieces wired together. The seams are real.</p></div>
+      <div class="card t-e2e"><span class="tag e2e">End-to-end</span>
+        <p class="tiny">The whole system, the way a user meets it. Nothing faked.</p></div>
+      <div class="card t-load"><span class="tag load">Load</span>
+        <p class="tiny">The whole system, many users at once. Output is a number, not a verdict.</p></div>
+    </div>
+    <p class="tiny" style="margin-top:22px">
+      <kbd>→</kbd> next &nbsp;·&nbsp; <kbd>←</kbd> back &nbsp;·&nbsp; <kbd>G</kbd> overview &nbsp;·&nbsp; <kbd>T</kbd> theme &nbsp;·&nbsp; <kbd>F</kbd> fullscreen
+    </p>
+  </div>
+</section>
+
+<!-- ============ 2 · THE QUESTION EACH ASKS ============ -->
+<section class="slide">
+  <div class="inner">
+    <p class="eyebrow">The distinction that matters</p>
+    <h2>Each level asks a different question</h2>
+    <p class="sub">If you remember one thing: the level is chosen by the <em>question</em>, not by the size of the code under test.</p>
+
+    <div class="grid g2">
+      <div class="card t-unit">
+        <span class="tag unit">Unit</span>
+        <h3>“Is this piece of logic right?”</h3>
+        <p class="tiny">Does <code>hash_password</code> salt? Does the discount round half-up? Pure logic, called directly,
+        with no database, no clock, no network. Milliseconds. Hundreds of them.</p>
+      </div>
+      <div class="card t-integ">
+        <span class="tag integ">Integration</span>
+        <h3>“Do these pieces agree with each other?”</h3>
+        <p class="tiny">Does the route actually call the service? Does the ORM write the column the query reads back?
+        Does the JSON shape match the schema? The <em>seams</em> are what is under test.</p>
+      </div>
+      <div class="card t-e2e">
+        <span class="tag e2e">End-to-end</span>
+        <h3>“Can a real user actually do this?”</h3>
+        <p class="tiny">Register → click the link in the email → log in → like an article → see it in the list.
+        Real browser, real HTTP, real database, real mail. Slow, fragile, and the only test that would have
+        caught the typo in your JavaScript.</p>
+      </div>
+      <div class="card t-load">
+        <span class="tag load">Load</span>
+        <h3>“Does it still work when 500 people do it at once?”</h3>
+        <p class="tiny">Not <em>does it work</em> — it already passed the other three. Under concurrency:
+        how slow, at what point, and what breaks first. The answer is a latency curve,
+        not a green checkmark.</p>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:18px">
+      <strong>Load testing is the odd one out.</strong> Unit, integration and E2E are the same axis at three zoom levels —
+      each one makes more of the system real. Load testing is a <em>different axis</em>: the system is fully real,
+      and what varies is the number of users.
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3 · MASTER DIAGRAM: HOW MUCH IS REAL ============ -->
+<section class="slide">
+  <div class="inner">
+    <p class="eyebrow">The master diagram</p>
+    <h2>The only real difference: how much of the stack is genuine</h2>
+    <p class="sub">Same application, four tests. Each column shows which layers actually execute and which are substituted with a fake.</p>
+
+    <figure>
+      <svg viewBox="0 0 960 470" role="img" aria-label="A matrix of six system layers by four test types, showing which layers are real, which are substituted with fakes, and which are not exercised at all.">
+        <defs>
+          <marker id="ar" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto">
+            <polygon points="0,0.5 8,4 0,7.5" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <!-- column headers -->
+        <text x="300" y="30" text-anchor="middle" class="s-lab" style="fill:var(--unit);font-weight:700">Unit</text>
+        <text x="300" y="47" text-anchor="middle" class="s-lab-s">~2 ms</text>
+        <text x="470" y="30" text-anchor="middle" class="s-lab" style="fill:var(--integ);font-weight:700">Integration</text>
+        <text x="470" y="47" text-anchor="middle" class="s-lab-s">~30 ms</text>
+        <text x="640" y="30" text-anchor="middle" class="s-lab" style="fill:var(--e2e);font-weight:700">End-to-end</text>
+        <text x="640" y="47" text-anchor="middle" class="s-lab-s">~8 s</text>
+        <text x="810" y="30" text-anchor="middle" class="s-lab" style="fill:var(--load);font-weight:700">Load</text>
+        <text x="810" y="47" text-anchor="middle" class="s-lab-s">30 s × 50 users</text>
+
+        <line x1="40" y1="60" x2="920" y2="60" stroke="var(--line)" stroke-width="1"/>
+
+        <!-- row labels -->
+        <text x="212" y="96"  text-anchor="end" class="s-lab">Browser &amp; JavaScript</text>
+        <text x="212" y="146" text-anchor="end" class="s-lab">HTTP over a socket</text>
+        <text x="212" y="196" text-anchor="end" class="s-lab">Routes &amp; middleware</text>
+        <text x="212" y="246" text-anchor="end" class="s-lab">Domain logic</text>
+        <text x="212" y="296" text-anchor="end" class="s-lab">Database</text>
+        <text x="212" y="346" text-anchor="end" class="s-lab">Redis, SMTP, 3rd&nbsp;party</text>
+
+        <!-- ROW 1 · browser -->
+        <rect x="245" y="78"  width="110" height="30" rx="5" class="s-ghost"/><text x="300" y="98"  text-anchor="middle" class="s-mono">absent</text>
+        <rect x="415" y="78"  width="110" height="30" rx="5" class="s-ghost"/><text x="470" y="98"  text-anchor="middle" class="s-mono">absent</text>
+        <rect x="585" y="78"  width="110" height="30" rx="5" fill="var(--e2e)" opacity=".9"/><text x="640" y="98" text-anchor="middle" class="s-mono" style="fill:#fff;font-weight:600">real Chrome</text>
+        <rect x="755" y="78"  width="110" height="30" rx="5" class="s-ghost"/><text x="810" y="98"  text-anchor="middle" class="s-mono">absent</text>
+
+        <!-- ROW 2 · HTTP -->
+        <rect x="245" y="128" width="110" height="30" rx="5" class="s-ghost"/><text x="300" y="148" text-anchor="middle" class="s-mono">absent</text>
+        <rect x="415" y="128" width="110" height="30" rx="5" fill="none" stroke="var(--integ)" stroke-width="1.6" stroke-dasharray="5 4"/><text x="470" y="148" text-anchor="middle" class="s-mono" style="fill:var(--integ)">in-process</text>
+        <rect x="585" y="128" width="110" height="30" rx="5" fill="var(--e2e)" opacity=".9"/><text x="640" y="148" text-anchor="middle" class="s-mono" style="fill:#fff;font-weight:600">real socket</text>
+        <rect x="755" y="128" width="110" height="30" rx="5" fill="var(--load)" opacity=".9"/><text x="810" y="148" text-anchor="middle" class="s-mono" style="fill:#fff;font-weight:600">real socket</text>
+
+        <!-- ROW 3 · routes -->
+        <rect x="245" y="178" width="110" height="30" rx="5" class="s-ghost"/><text x="300" y="198" text-anchor="middle" class="s-mono">absent</text>
+        <rect x="415" y="178" width="110" height="30" rx="5" fill="var(--integ)" opacity=".9"/><text x="470" y="198" text-anchor="middle" class="s-mono" style="fill:#fff;font-weight:600">real</text>
+        <rect x="585" y="178" width="110" height="30" rx="5" fill="var(--e2e)" opacity=".9"/><text x="640" y="198" text-anchor="middle" class="s-mono" style="fill:#fff;font-weight:600">real</text>
+        <rect x="755" y="178" width="110" height="30" rx="5" fill="var(--load)" opacity=".9"/><text x="810" y="198" text-anchor="middle" class="s-mono" style="fill:#fff;font-weight:600">real</text>
+
+        <!-- ROW 4 · domain -->
+        <rect x="245" y="228" width="110" height="30" rx="5" fill="var(--unit)" opacity=".9"/><text x="300" y="248" text-anchor="middle" class="s-mono" style="fill:#fff;font-weight:600">real</text>
+        <rect x="415" y="228" width="110" height="30" rx="5" fill="var(--integ)" opacity=".9"/><text x="470" y="248" text-anchor="middle" class="s-mono" style="fill:#fff;font-weight:600">real</text>
+        <rect x="585" y="228" width="110" height="30" rx="5" fill="var(--e2e)" opacity=".9"/><text x="640" y="248" text-anchor="middle" class="s-mono" style="fill:#fff;font-weight:600">real</text>
+        <rect x="755" y="228" width="110" height="30" rx="5" fill="var(--load)" opacity=".9"/><text x="810" y="248" text-anchor="middle" class="s-mono" style="fill:#fff;font-weight:600">real</text>
+
+        <!-- ROW 5 · database -->
+        <rect x="245" y="278" width="110" height="30" rx="5" fill="none" stroke="var(--unit)" stroke-width="1.6" stroke-dasharray="5 4"/><text x="300" y="298" text-anchor="middle" class="s-mono" style="fill:var(--unit)">faked</text>
+        <rect x="415" y="278" width="110" height="30" rx="5" fill="none" stroke="var(--integ)" stroke-width="1.6" stroke-dasharray="5 4"/><text x="470" y="298" text-anchor="middle" class="s-mono" style="fill:var(--integ)">SQLite :memory:</text>
+        <rect x="585" y="278" width="110" height="30" rx="5" fill="var(--e2e)" opacity=".9"/><text x="640" y="298" text-anchor="middle" class="s-mono" style="fill:#fff;font-weight:600">Postgres</text>
+        <rect x="755" y="278" width="110" height="30" rx="5" fill="var(--load)" opacity=".9"/><text x="810" y="298" text-anchor="middle" class="s-mono" style="fill:#fff;font-weight:600">Postgres</text>
+
+        <!-- ROW 6 · externals -->
+        <rect x="245" y="328" width="110" height="30" rx="5" class="s-ghost"/><text x="300" y="348" text-anchor="middle" class="s-mono">absent</text>
+        <rect x="415" y="328" width="110" height="30" rx="5" fill="none" stroke="var(--integ)" stroke-width="1.6" stroke-dasharray="5 4"/><text x="470" y="348" text-anchor="middle" class="s-mono" style="fill:var(--integ)">fake Redis / outbox</text>
+        <rect x="585" y="328" width="110" height="30" rx="5" fill="var(--e2e)" opacity=".9"/><text x="640" y="348" text-anchor="middle" class="s-mono" style="fill:#fff;font-weight:600">Redis + Mailpit</text>
+        <rect x="755" y="328" width="110" height="30" rx="5" fill="var(--load)" opacity=".9"/><text x="810" y="348" text-anchor="middle" class="s-mono" style="fill:#fff;font-weight:600">Redis + Mailpit</text>
+
+        <!-- legend -->
+        <line x1="40" y1="385" x2="920" y2="385" stroke="var(--line)" stroke-width="1"/>
+        <rect x="245" y="400" width="26" height="16" rx="4" fill="var(--fg)" opacity=".85"/>
+        <text x="279" y="412" class="s-lab-s">really executes</text>
+        <rect x="405" y="400" width="26" height="16" rx="4" fill="none" stroke="var(--fg)" stroke-width="1.6" stroke-dasharray="5 4"/>
+        <text x="439" y="412" class="s-lab-s">substituted with a fake / in-memory stand-in</text>
+        <rect x="725" y="400" width="26" height="16" rx="4" class="s-ghost"/>
+        <text x="759" y="412" class="s-lab-s">not exercised at all</text>
+
+        <!-- the arrow of realness -->
+        <path d="M245 445 H865" class="s-line" marker-end="url(#ar)" opacity=".55"/>
+        <text x="300" y="463" text-anchor="middle" class="s-lab-s">less real, faster, more precise</text>
+        <text x="790" y="463" text-anchor="middle" class="s-lab-s">more real, slower, more truthful</text>
+      </svg>
+      <figcaption>Every dashed cell is a <em>lie you agreed to</em> in exchange for speed. The bugs that reach production live exactly where the dashes are.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ 4 · UNIT ============ -->
+<section class="slide">
+  <div class="inner">
+    <span class="tag unit">Unit</span>
+    <h2>One piece, in isolation</h2>
+    <p class="sub">The function is called directly. Nothing else in the system is running.</p>
+
+    <div class="split">
+      <figure>
+        <svg viewBox="0 0 560 300" role="img" aria-label="A unit test calls one service function directly; the database, HTTP layer and mail server sit outside the test boundary, greyed out and unused.">
+          <defs><marker id="ar2" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto">
+            <polygon points="0,0.5 8,4 0,7.5" fill="var(--unit)"/></marker></defs>
+
+          <rect x="20" y="24" width="330" height="200" rx="10" fill="none" stroke="var(--unit)" stroke-width="1.5" opacity=".55"/>
+          <text x="34" y="46" class="s-lab-s" style="fill:var(--unit);font-weight:650">test process — nothing else runs</text>
+
+          <rect x="46" y="72" width="128" height="52" rx="7" class="s-box"/>
+          <text x="110" y="95" text-anchor="middle" class="s-lab">test function</text>
+          <text x="110" y="112" text-anchor="middle" class="s-mono">test_security.py</text>
+
+          <rect x="204" y="72" width="128" height="52" rx="7" class="s-box" stroke="var(--unit)"/>
+          <text x="268" y="95" text-anchor="middle" class="s-lab">AuthService</text>
+          <text x="268" y="112" text-anchor="middle" class="s-mono">hash_password()</text>
+
+          <path d="M178 90 H198" stroke="var(--unit)" stroke-width="1.8" fill="none" marker-end="url(#ar2)"/>
+          <text x="188" y="80" text-anchor="middle" class="s-lab-s" style="fill:var(--unit)">calls</text>
+          <path d="M298 128 V160 H126 V116" stroke="var(--unit)" stroke-width="1.8" fill="none" marker-end="url(#ar2)"/>
+          <text x="212" y="176" text-anchor="middle" class="s-lab-s" style="fill:var(--unit)">returns a value → assert</text>
+
+          <rect x="400" y="52" width="140" height="40" rx="7" class="s-ghost"/>
+          <text x="470" y="77" text-anchor="middle" class="s-mono">Database</text>
+          <rect x="400" y="106" width="140" height="40" rx="7" class="s-ghost"/>
+          <text x="470" y="131" text-anchor="middle" class="s-mono">HTTP server</text>
+          <rect x="400" y="160" width="140" height="40" rx="7" class="s-ghost"/>
+          <text x="470" y="185" text-anchor="middle" class="s-mono">SMTP / Redis</text>
+          <text x="470" y="222" text-anchor="middle" class="s-lab-s">never started</text>
+
+          <text x="20" y="266" class="s-lab-s">Fails only when <tspan style="fill:var(--fg)">this function's own logic</tspan> is wrong —</text>
+          <text x="20" y="284" class="s-lab-s">which is exactly why the failure tells you where to look.</text>
+        </svg>
+      </figure>
+
+      <div>
+<pre><span class="cm"># tests/test_security.py — no database, no HTTP</span>
+<span class="kw">async def</span> <span class="fn">test_hashing_is_salted</span>():
+    first  = <span class="kw">await</span> auth_service.hash_password(<span class="st">"hunter2"</span>)
+    second = <span class="kw">await</span> auth_service.hash_password(<span class="st">"hunter2"</span>)
+
+    <span class="kw">assert</span> first != second
+    <span class="kw">assert</span> <span class="kw">await</span> auth_service.verify_password(<span class="st">"hunter2"</span>, first)</pre>
+        <div class="card t-unit">
+          <div class="kv"><span>Runs in</span><span>~2 ms, no setup at all</span></div>
+          <div class="kv"><span>Catches</span><span>wrong algorithms, bad edge cases, off-by-one, regressions in pure logic</span></div>
+          <div class="kv"><span>Misses</span><span>everything about how pieces connect — a perfectly-tested function wired to nothing still passes</span></div>
+          <div class="kv"><span>Fails when</span><span>you change behaviour <em>or</em> merely refactor — this is the cost of testing internals</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5 · INTEGRATION ============ -->
+<section class="slide">
+  <div class="inner">
+    <span class="tag integ">Integration</span>
+    <h2>Several pieces, wired together — the seams are the subject</h2>
+    <p class="sub">The app runs in-process. The router, the dependency injection, the ORM and a real SQL engine all participate; the slow outside world does not.</p>
+
+    <div class="split">
+      <figure>
+        <svg viewBox="0 0 560 320" role="img" aria-label="An integration test drives the ASGI app in-process through routes, service and ORM into an in-memory SQLite database, while Redis and SMTP are replaced by fakes.">
+          <defs><marker id="ar3" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto">
+            <polygon points="0,0.5 8,4 0,7.5" fill="var(--integ)"/></marker></defs>
+
+          <rect x="16" y="22" width="420" height="238" rx="10" fill="none" stroke="var(--integ)" stroke-width="1.5" opacity=".55"/>
+          <text x="30" y="44" class="s-lab-s" style="fill:var(--integ);font-weight:650">one process — no socket, no container</text>
+
+          <rect x="36" y="64" width="112" height="44" rx="7" class="s-box"/>
+          <text x="92" y="83" text-anchor="middle" class="s-lab">test</text>
+          <text x="92" y="99" text-anchor="middle" class="s-mono">httpx client</text>
+
+          <rect x="36" y="132" width="112" height="44" rx="7" class="s-box" stroke="var(--integ)"/>
+          <text x="92" y="151" text-anchor="middle" class="s-lab">FastAPI</text>
+          <text x="92" y="167" text-anchor="middle" class="s-mono">routes + deps</text>
+
+          <rect x="200" y="132" width="112" height="44" rx="7" class="s-box" stroke="var(--integ)"/>
+          <text x="256" y="151" text-anchor="middle" class="s-lab">service</text>
+          <text x="256" y="167" text-anchor="middle" class="s-mono">+ SQLAlchemy</text>
+
+          <rect x="200" y="200" width="112" height="44" rx="7" fill="none" stroke="var(--integ)" stroke-width="1.6" stroke-dasharray="5 4"/>
+          <text x="256" y="219" text-anchor="middle" class="s-lab" style="fill:var(--integ)">SQLite</text>
+          <text x="256" y="235" text-anchor="middle" class="s-mono" style="fill:var(--integ)">:memory:</text>
+
+          <rect x="332" y="64" width="90" height="38" rx="7" fill="none" stroke="var(--integ)" stroke-width="1.6" stroke-dasharray="5 4"/>
+          <text x="377" y="87" text-anchor="middle" class="s-mono" style="fill:var(--integ)">fake Redis</text>
+          <rect x="332" y="112" width="90" height="38" rx="7" fill="none" stroke="var(--integ)" stroke-width="1.6" stroke-dasharray="5 4"/>
+          <text x="377" y="135" text-anchor="middle" class="s-mono" style="fill:var(--integ)">mail outbox</text>
+
+          <path d="M92 112 V126" stroke="var(--integ)" stroke-width="1.8" fill="none" marker-end="url(#ar3)"/>
+          <text x="100" y="124" class="s-lab-s" style="fill:var(--integ)">ASGI call, not TCP</text>
+          <path d="M152 154 H194" stroke="var(--integ)" stroke-width="1.8" fill="none" marker-end="url(#ar3)"/>
+          <path d="M256 180 V194" stroke="var(--integ)" stroke-width="1.8" fill="none" marker-end="url(#ar3)"/>
+          <text x="264" y="192" class="s-lab-s" style="fill:var(--integ)">real SQL</text>
+          <path d="M312 145 H326" stroke="var(--integ)" stroke-width="1.5" fill="none" stroke-dasharray="4 3" marker-end="url(#ar3)"/>
+
+          <rect x="470" y="132" width="76" height="44" rx="7" class="s-ghost"/>
+          <text x="508" y="158" text-anchor="middle" class="s-mono">browser</text>
+          <text x="508" y="192" text-anchor="middle" class="s-lab-s">not involved</text>
+
+          <text x="16" y="292" class="s-lab-s">The <tspan style="fill:var(--fg)">arrows</tspan> are what is being tested here — not the boxes.</text>
+          <text x="16" y="310" class="s-lab-s">Route ↔ service ↔ ORM ↔ SQL is where contracts silently drift apart.</text>
+        </svg>
+      </figure>
+
+      <div>
+<pre><span class="cm"># tests/test_articles_api.py — real routing, real SQL</span>
+<span class="kw">async def</span> <span class="fn">test_listing_returns_newest_first</span>(client, auth_headers, articles):
+    made = <span class="kw">await</span> articles.create_many(<span class="st">3</span>)
+
+    response = <span class="kw">await</span> client.get(<span class="st">"/api/articles"</span>, headers=auth_headers)
+
+    <span class="kw">assert</span> response.status_code == <span class="st">200</span>
+    <span class="kw">assert</span> [a[<span class="st">"id"</span>] <span class="kw">for</span> a <span class="kw">in</span> response.json()[<span class="st">"articles"</span>]] == [a.id <span class="kw">for</span> a <span class="kw">in</span> made]</pre>
+        <div class="card t-integ">
+          <div class="kv"><span>Runs in</span><span>~30 ms each; the whole suite in ~3 s, no Docker</span></div>
+          <div class="kv"><span>Catches</span><span>wrong status codes, missing auth on a route, ORM/schema mismatch, broken ordering, N+1 queries</span></div>
+          <div class="kv"><span>Misses</span><span>anything above HTTP (your JS), and anything the fakes paper over — SQLite is not Postgres</span></div>
+          <div class="kv"><span>Best value</span><span>the highest confidence-per-second in the whole suite; most of your tests belong here</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6 · E2E ============ -->
+<section class="slide">
+  <div class="inner">
+    <span class="tag e2e">End-to-end</span>
+    <h2>The whole system, exactly as a user meets it</h2>
+    <p class="sub">A real browser drives a running stack. Nothing is substituted — the app really sends mail, and the test reads the link back out of the inbox.</p>
+
+    <div class="split">
+      <figure>
+        <svg viewBox="0 0 560 330" role="img" aria-label="An end-to-end test drives a real Chrome browser over HTTP into the running API container, which reads and writes Postgres and Redis and sends real mail to Mailpit, which the test also reads.">
+          <defs><marker id="ar4" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto">
+            <polygon points="0,0.5 8,4 0,7.5" fill="var(--e2e)"/></marker></defs>
+
+          <rect x="16" y="52" width="120" height="56" rx="7" class="s-box" stroke="var(--e2e)"/>
+          <text x="76" y="76" text-anchor="middle" class="s-lab">Chrome</text>
+          <text x="76" y="93" text-anchor="middle" class="s-mono">Selenium</text>
+
+          <rect x="216" y="52" width="130" height="56" rx="7" class="s-box" stroke="var(--e2e)"/>
+          <text x="281" y="76" text-anchor="middle" class="s-lab">api container</text>
+          <text x="281" y="93" text-anchor="middle" class="s-mono">uvicorn :8011</text>
+
+          <rect x="424" y="24" width="120" height="44" rx="7" class="s-box" stroke="var(--e2e)"/>
+          <text x="484" y="51" text-anchor="middle" class="s-mono" style="fill:var(--fg)">Postgres</text>
+          <rect x="424" y="80" width="120" height="44" rx="7" class="s-box" stroke="var(--e2e)"/>
+          <text x="484" y="107" text-anchor="middle" class="s-mono" style="fill:var(--fg)">Redis</text>
+          <rect x="424" y="136" width="120" height="44" rx="7" class="s-box" stroke="var(--e2e)"/>
+          <text x="484" y="163" text-anchor="middle" class="s-mono" style="fill:var(--fg)">Mailpit</text>
+
+          <path d="M140 80 H210" stroke="var(--e2e)" stroke-width="1.8" fill="none" marker-end="url(#ar4)"/>
+          <text x="175" y="70" text-anchor="middle" class="s-lab-s" style="fill:var(--e2e)">real HTTP</text>
+          <path d="M350 72 H418" stroke="var(--e2e)" stroke-width="1.8" fill="none" marker-end="url(#ar4)"/>
+          <path d="M350 88 H392 V102 H418" stroke="var(--e2e)" stroke-width="1.8" fill="none" marker-end="url(#ar4)"/>
+          <path d="M350 100 H376 V158 H418" stroke="var(--e2e)" stroke-width="1.8" fill="none" marker-end="url(#ar4)"/>
+          <text x="392" y="196" text-anchor="middle" class="s-lab-s" style="fill:var(--e2e)">really sends the email</text>
+
+          <path d="M484 184 V234 H76 V114" stroke="var(--e2e)" stroke-width="1.8" fill="none" stroke-dasharray="6 4" marker-end="url(#ar4)"/>
+          <text x="280" y="252" text-anchor="middle" class="s-lab-s" style="fill:var(--e2e)">test reads the verification link out of the inbox and clicks it</text>
+
+          <text x="16" y="292" class="s-lab-s">Also executes <tspan style="fill:var(--fg)">auth.js</tspan>, the templates, the CSS selectors, the redirect —</text>
+          <text x="16" y="310" class="s-lab-s">every layer no Python test ever touches.</text>
+        </svg>
+      </figure>
+
+      <div>
+<pre><span class="cm"># tests/e2e/ — a real Chrome against the compose stack</span>
+<span class="fn">fill</span>(driver, <span class="st">"email"</span>, email)
+<span class="fn">fill</span>(driver, <span class="st">"password"</span>, PASSWORD)
+driver.find_element(By.ID, <span class="st">"register-btn"</span>).click()
+
+link = <span class="fn">verification_link</span>(email)   <span class="cm"># read from Mailpit</span>
+driver.get(link)
+...
+<span class="kw">assert</span> driver.execute_script(<span class="st">"return localStorage.cnn_token"</span>)</pre>
+        <div class="card t-e2e">
+          <div class="kv"><span>Runs in</span><span>~8 s for one flow — and needs the whole stack up first</span></div>
+          <div class="kv"><span>Catches</span><span>the bugs nothing else can: a token stored under the wrong localStorage key, a fetch missing its
+            <code>Authorization</code> header, a template rendering the wrong <code>data-article-id</code></span></div>
+          <div class="kv"><span>Costs</span><span>slow, flaky (timing, waits, animations), and when it fails it tells you
+            “the flow is broken” — not <em>where</em></span></div>
+          <div class="kv"><span>Rule</span><span>write few, and only for <strong>journeys that make money</strong> — sign-up, checkout, login</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 7 · LOAD ============ -->
+<section class="slide">
+  <div class="inner">
+    <span class="tag load">Load</span>
+    <h2>Same system, many users — and the output is a measurement</h2>
+    <p class="sub">Nothing here is about correctness. The code already works for one user. The question is what happens at fifty, at five hundred, and which resource gives out first.</p>
+
+    <div class="split">
+      <figure>
+        <svg viewBox="0 0 560 340" role="img" aria-label="Fifty simulated users hit one endpoint concurrently; the result is a latency distribution with median and 95th percentile, and a curve showing latency rising as concurrency increases.">
+          <defs><marker id="ar5" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto">
+            <polygon points="0,0.5 8,4 0,7.5" fill="var(--load)"/></marker></defs>
+
+          <text x="70" y="30" text-anchor="middle" class="s-lab-s" style="fill:var(--load);font-weight:650">50 virtual users</text>
+          <rect x="18" y="42" width="104" height="22" rx="4" class="s-box" stroke="var(--load)"/><text x="70" y="57" text-anchor="middle" class="s-mono">Reader</text>
+          <rect x="18" y="70" width="104" height="22" rx="4" class="s-box" stroke="var(--load)"/><text x="70" y="85" text-anchor="middle" class="s-mono">Reader</text>
+          <rect x="18" y="98" width="104" height="22" rx="4" class="s-box" stroke="var(--load)"/><text x="70" y="113" text-anchor="middle" class="s-mono">Reader</text>
+          <text x="70" y="136" text-anchor="middle" class="s-mono">… × 50</text>
+
+          <path d="M128 60 H186" stroke="var(--load)" stroke-width="1.6" fill="none" marker-end="url(#ar5)"/>
+          <path d="M128 82 H186" stroke="var(--load)" stroke-width="1.6" fill="none" marker-end="url(#ar5)"/>
+          <path d="M128 104 H172 V84 H186" stroke="var(--load)" stroke-width="1.6" fill="none" marker-end="url(#ar5)"/>
+
+          <rect x="192" y="52" width="120" height="60" rx="7" class="s-box" stroke="var(--load)"/>
+          <text x="252" y="76" text-anchor="middle" class="s-lab">the real stack</text>
+          <text x="252" y="93" text-anchor="middle" class="s-mono">GET /api/articles</text>
+
+          <path d="M252 118 V140" stroke="var(--load)" stroke-width="1.6" fill="none" marker-end="url(#ar5)"/>
+          <text x="262" y="136" class="s-lab-s">pool of 10 connections</text>
+          <rect x="192" y="146" width="120" height="34" rx="7" class="s-box"/>
+          <text x="252" y="168" text-anchor="middle" class="s-mono">Postgres</text>
+
+          <!-- result panel -->
+          <rect x="344" y="30" width="204" height="150" rx="8" fill="var(--panel)" stroke="var(--load)" stroke-width="1.5"/>
+          <text x="358" y="52" class="s-lab" style="fill:var(--load);font-weight:650">the answer</text>
+          <text x="358" y="76" class="s-mono" style="fill:var(--fg)">requests   1 482</text>
+          <text x="358" y="96" class="s-mono" style="fill:var(--fg)">failures       0</text>
+          <text x="358" y="116" class="s-mono" style="fill:var(--fg)">median      42 ms</text>
+          <text x="358" y="136" class="s-mono" style="fill:var(--fg)">p95        310 ms</text>
+          <text x="358" y="156" class="s-mono" style="fill:var(--fg)">throughput 49 rps</text>
+          <text x="358" y="174" class="s-lab-s">no pass. no fail. a number.</text>
+
+          <!-- the curve -->
+          <line x1="40" y1="316" x2="528" y2="316" stroke="var(--line)" stroke-width="1.2"/>
+          <line x1="40" y1="316" x2="40" y2="210" stroke="var(--line)" stroke-width="1.2"/>
+          <text x="40" y="202" class="s-lab-s">latency</text>
+          <text x="528" y="334" text-anchor="end" class="s-lab-s">concurrent users →</text>
+          <path d="M40 308 C 140 306, 230 300, 300 288 C 350 278, 390 258, 420 230 C 436 216, 448 212, 460 210"
+                stroke="var(--load)" stroke-width="2.4" fill="none"/>
+          <line x1="360" y1="316" x2="360" y2="218" stroke="var(--fg)" stroke-width="1.2" stroke-dasharray="4 4" opacity=".6"/>
+          <text x="366" y="234" class="s-lab-s" style="fill:var(--fg)">the knee — where</text>
+          <text x="366" y="250" class="s-lab-s" style="fill:var(--fg)">a queue starts forming</text>
+          <text x="150" y="298" class="s-lab-s">flat: spare capacity</text>
+        </svg>
+      </figure>
+
+      <div>
+<pre><span class="cm"># tests/load/locustfile.py</span>
+<span class="kw">class</span> <span class="fn">Reader</span>(HttpUser):
+    wait_time = between(<span class="st">1</span>, <span class="st">3</span>)
+
+    <span class="kw">@task</span>
+    <span class="kw">def</span> <span class="fn">list_articles</span>(self):
+        self.client.get(<span class="st">"/api/articles"</span>, headers=self.headers)
+
+<span class="cm"># locust --headless -u 50 -r 10 -t 30s</span></pre>
+        <div class="card t-load">
+          <div class="kv"><span>Asks</span><span>how does latency change as concurrency rises, and what breaks first</span></div>
+          <div class="kv"><span>Catches</span><span>connection-pool exhaustion, N+1 queries that were invisible at one user, missing indexes, memory growth, lock contention</span></div>
+          <div class="kv"><span>Needs</span><span>a production-like environment — a load test against SQLite on a laptop measures your laptop</span></div>
+          <div class="kv"><span>Read</span><span><strong>p95, not the average.</strong> The mean hides the slow tail that your users actually notice</span></div>
+        </div>
+        <p class="tiny" style="margin-top:10px">Related shapes: <strong>stress</strong> (raise load until it breaks, to find the ceiling) ·
+        <strong>soak</strong> (normal load for hours, to find leaks) · <strong>spike</strong> (0→2000 in seconds, to test elasticity).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 8 · ONE FEATURE, FOUR TESTS ============ -->
+<section class="slide">
+  <div class="inner">
+    <p class="eyebrow">The same feature, four ways</p>
+    <h2>“A reader likes an article” — what each test actually covers</h2>
+    <p class="sub">One request path. Four tests, each spanning a different slice of it. The brackets are the point.</p>
+
+    <figure>
+      <svg viewBox="0 0 980 440" role="img" aria-label="A single request path from browser JavaScript through HTTP, route, service and database, with four coverage brackets underneath showing which span each of the four test types exercises.">
+        <defs><marker id="ar6" markerWidth="8" markerHeight="8" refX="7" refY="3.6" orient="auto">
+          <polygon points="0,0.5 7,3.6 0,6.7" fill="currentColor"/></marker></defs>
+
+        <!-- pipeline -->
+        <g>
+          <rect x="24"  y="52" width="152" height="54" rx="7" class="s-box"/>
+          <text x="100" y="74" text-anchor="middle" class="s-lab">browser JS</text>
+          <text x="100" y="92" text-anchor="middle" class="s-mono">auth.js · click</text>
+
+          <rect x="216" y="52" width="152" height="54" rx="7" class="s-box"/>
+          <text x="292" y="74" text-anchor="middle" class="s-lab">HTTP request</text>
+          <text x="292" y="92" text-anchor="middle" class="s-mono">POST /articles/7/like</text>
+
+          <rect x="408" y="52" width="152" height="54" rx="7" class="s-box"/>
+          <text x="484" y="74" text-anchor="middle" class="s-lab">route + auth dep</text>
+          <text x="484" y="92" text-anchor="middle" class="s-mono">decode JWT, 401?</text>
+
+          <rect x="600" y="52" width="152" height="54" rx="7" class="s-box"/>
+          <text x="676" y="74" text-anchor="middle" class="s-lab">service logic</text>
+          <text x="676" y="92" text-anchor="middle" class="s-mono">already liked?</text>
+
+          <rect x="792" y="52" width="152" height="54" rx="7" class="s-box"/>
+          <text x="868" y="74" text-anchor="middle" class="s-lab">database</text>
+          <text x="868" y="92" text-anchor="middle" class="s-mono">INSERT liked_article</text>
+
+          <g color="var(--muted)">
+            <path d="M180 79 H210" class="s-line" stroke="currentColor" marker-end="url(#ar6)"/>
+            <path d="M372 79 H402" class="s-line" stroke="currentColor" marker-end="url(#ar6)"/>
+            <path d="M564 79 H594" class="s-line" stroke="currentColor" marker-end="url(#ar6)"/>
+            <path d="M756 79 H786" class="s-line" stroke="currentColor" marker-end="url(#ar6)"/>
+          </g>
+        </g>
+
+        <!-- brackets -->
+        <g>
+          <!-- unit -->
+          <path d="M600 140 V128 H752 V140" fill="none" stroke="var(--unit)" stroke-width="2"/>
+          <rect x="600" y="146" width="152" height="26" rx="5" fill="var(--unit)" opacity=".16"/>
+          <text x="676" y="164" text-anchor="middle" class="s-lab" style="fill:var(--unit);font-weight:650">Unit</text>
+          <text x="768" y="164" class="s-lab-s">calls <tspan class="s-mono">toggle_like()</tspan> directly with a fake session — “does it un-like on the second call?”</text>
+
+          <!-- integration -->
+          <path d="M216 214 V202 H944 V214" fill="none" stroke="var(--integ)" stroke-width="2"/>
+          <rect x="216" y="220" width="728" height="26" rx="5" fill="var(--integ)" opacity=".16"/>
+          <text x="580" y="238" text-anchor="middle" class="s-lab" style="fill:var(--integ);font-weight:650">Integration — HTTP through to real SQL, in one process</text>
+          <text x="24" y="238" class="s-lab-s">“401 without a token; the row is</text>
+          <text x="24" y="254" class="s-lab-s">really written; liking twice is idempotent”</text>
+
+          <!-- e2e -->
+          <path d="M24 302 V290 H944 V302" fill="none" stroke="var(--e2e)" stroke-width="2"/>
+          <rect x="24" y="308" width="920" height="26" rx="5" fill="var(--e2e)" opacity=".16"/>
+          <text x="484" y="326" text-anchor="middle" class="s-lab" style="fill:var(--e2e);font-weight:650">End-to-end — a person clicks the heart and sees it fill in</text>
+
+          <!-- load -->
+          <path d="M216 380 V368 H944 V380" fill="none" stroke="var(--load)" stroke-width="2"/>
+          <rect x="216" y="386" width="728" height="26" rx="5" fill="var(--load)" opacity=".16"/>
+          <text x="580" y="404" text-anchor="middle" class="s-lab" style="fill:var(--load);font-weight:650">Load — the same span, ×50 at once, timed</text>
+          <text x="24" y="398" class="s-lab-s">same path as integration,</text>
+          <text x="24" y="414" class="s-lab-s">but measured, not asserted</text>
+        </g>
+      </svg>
+      <figcaption>
+        Note what the brackets reveal: <span class="c-unit">unit</span> and <span class="c-load">load</span> can cover the
+        <em>same code</em> and still be different tests — one asserts a value, the other measures a duration.
+        And only <span class="c-e2e">E2E</span> reaches the leftmost box, where your JavaScript lives.
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ 9 · COMPARISON TABLE ============ -->
+<section class="slide">
+  <div class="inner">
+    <p class="eyebrow">Side by side</p>
+    <h2>The comparison, in one table</h2>
+    <table>
+      <thead>
+        <tr><th></th><th class="c-unit">Unit</th><th class="c-integ">Integration</th><th class="c-e2e">End-to-end</th><th class="c-load">Load</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Question</td><td>Is this logic right?</td><td>Do the pieces agree?</td><td>Can a user do it?</td><td>Does it hold up?</td></tr>
+        <tr><td>Scope</td><td>one function / class</td><td>several modules + a real DB</td><td>the whole deployed system</td><td>the whole system, ×N users</td></tr>
+        <tr><td>What's faked</td><td>everything around it</td><td>the slow outside world</td><td>nothing</td><td>nothing (users are simulated)</td></tr>
+        <tr><td>Speed</td><td>milliseconds</td><td>tens of ms</td><td>seconds to minutes</td><td>minutes, by design</td></tr>
+        <tr><td>Count</td><td>hundreds</td><td>dozens</td><td>a handful</td><td>a few scenarios</td></tr>
+        <tr><td>Runs on</td><td>every save</td><td>every commit</td><td>every PR / before release</td><td>nightly or before release</td></tr>
+        <tr><td>Setup needed</td><td>none</td><td>none (in-memory DB)</td><td>full stack up</td><td>production-like stack</td></tr>
+        <tr><td>Output</td><td>pass / fail</td><td>pass / fail</td><td>pass / fail</td><td><strong>a distribution</strong> (p50, p95, rps)</td></tr>
+        <tr><td>On failure</td><td>points at the line</td><td>points at the seam</td><td>“something broke”</td><td>“it slowed down here”</td></tr>
+        <tr><td>Flakiness</td><td>essentially none</td><td>low</td><td>the main cost</td><td>inherently noisy</td></tr>
+        <tr><td>Tools</td><td>pytest, unittest</td><td>pytest + httpx / TestClient</td><td>Selenium, Playwright, Cypress</td><td>Locust, k6, JMeter, Gatling</td></tr>
+        <tr><td>Breaks when…</td><td>you refactor internals</td><td>a contract changes</td><td>the UI moves a button</td><td>nothing — it reports</td></tr>
+      </tbody>
+    </table>
+    <div class="callout" style="margin-top:16px">
+      <strong>The trade is always the same one:</strong> speed and precise blame on one end, realism and true confidence on the other.
+      You cannot buy both, so you buy some of each.
+    </div>
+  </div>
+</section>
+
+<!-- ============ 10 · PYRAMID ============ -->
+<section class="slide">
+  <div class="inner">
+    <p class="eyebrow">Proportions</p>
+    <h2>How many of each — and why load sits off to the side</h2>
+
+    <div class="split">
+      <figure>
+        <svg viewBox="0 0 620 380" role="img" aria-label="A test pyramid with many unit tests at the base, fewer integration tests in the middle and a few end-to-end tests at the top, with load testing drawn as a separate orthogonal axis beside it.">
+          <defs><marker id="ar7" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto">
+            <polygon points="0,0.5 8,4 0,7.5" fill="currentColor"/></marker></defs>
+
+          <polygon points="180,40 239,125 121,125" fill="var(--e2e)" opacity=".85"/>
+          <polygon points="121,125 239,125 299,212 61,212" fill="var(--integ)" opacity=".85"/>
+          <polygon points="61,212 299,212 360,300 0,300" fill="var(--unit)" opacity=".85"/>
+
+          <text x="180" y="104" text-anchor="middle" style="fill:#fff;font-size:12.5px;font-weight:700;font-family:inherit">E2E</text>
+          <text x="180" y="176" text-anchor="middle" style="fill:#fff;font-size:13.5px;font-weight:700;font-family:inherit">Integration</text>
+          <text x="180" y="262" text-anchor="middle" style="fill:#fff;font-size:14.5px;font-weight:700;font-family:inherit">Unit</text>
+
+          <text x="376" y="98" class="s-lab-s">~5 tests · minutes</text>
+          <text x="376" y="180" class="s-lab-s">~50 tests · seconds</text>
+          <text x="376" y="266" class="s-lab-s">~500 tests · milliseconds</text>
+
+          <g color="var(--muted)">
+            <path d="M486 290 V56" class="s-line" stroke="currentColor" marker-end="url(#ar7)"/>
+          </g>
+          <text x="498" y="70" class="s-lab-s">more realistic</text>
+          <text x="498" y="86" class="s-lab-s">slower, flakier</text>
+          <text x="498" y="286" class="s-lab-s">faster, cheaper</text>
+          <text x="498" y="270" class="s-lab-s">sharper blame</text>
+
+          <line x1="0" y1="330" x2="620" y2="330" stroke="var(--line)" stroke-width="1"/>
+          <rect x="0" y="344" width="360" height="28" rx="6" fill="var(--load)" opacity=".85"/>
+          <text x="180" y="363" text-anchor="middle" style="fill:#fff;font-size:12.5px;font-weight:700;font-family:inherit">Load — a different axis entirely</text>
+          <text x="376" y="363" class="s-lab-s">not “how much is real”, but “how many at once”</text>
+        </svg>
+      </figure>
+
+      <div>
+        <div class="card" style="margin-bottom:12px">
+          <h3>Why the shape</h3>
+          <p class="tiny">Cost per test rises by roughly 10× at each level, and so does the time to diagnose a failure.
+          A broad base means most bugs are caught by the cheapest test that <em>can</em> catch them.</p>
+        </div>
+        <div class="card" style="margin-bottom:12px">
+          <h3>The two failure shapes</h3>
+          <p class="tiny"><strong>Ice-cream cone</strong> (mostly E2E): a suite that takes 40 minutes, fails randomly,
+          and that everybody re-runs instead of reading.<br>
+          <strong>Hourglass</strong> (no middle): thousands of green unit tests and a product where nothing fits together.</p>
+        </div>
+        <div class="card">
+          <h3>The honest modern version</h3>
+          <p class="tiny">Many teams now push the middle layer widest — the “testing trophy”. Integration tests exercise
+          real seams at near-unit speed, which is where most real bugs actually are. Treat the pyramid as a
+          <em>hint about cost</em>, not a quota.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 11 · WHAT EACH CATCHES ============ -->
+<section class="slide">
+  <div class="inner">
+    <p class="eyebrow">In practice</p>
+    <h2>The same bug, found at four different prices</h2>
+    <p class="sub">Every bug is catchable by more than one level. The discipline is catching it at the cheapest level that <em>can</em>.</p>
+
+    <table>
+      <thead><tr><th style="width:36%">The bug</th><th>Cheapest level that catches it</th><th>Why the level below misses it</th></tr></thead>
+      <tbody>
+        <tr><td style="white-space:normal">Password hash isn't salted</td><td class="c-unit">Unit</td><td>—</td></tr>
+        <tr><td style="white-space:normal">Pagination returns page 2 on page 3</td><td class="c-unit">Unit</td><td>—</td></tr>
+        <tr><td style="white-space:normal">A route forgot its auth dependency</td><td class="c-integ">Integration</td><td>the handler function itself is fine; the <em>wiring</em> is wrong</td></tr>
+        <tr><td style="white-space:normal">ORM writes <code>created</code>, query reads <code>created_at</code></td><td class="c-integ">Integration</td><td>each side is internally consistent; only real SQL disagrees</td></tr>
+        <tr><td style="white-space:normal">Response JSON renamed a field the UI reads</td><td class="c-integ">Integration</td><td>unit tests assert on objects, not the serialized contract</td></tr>
+        <tr><td style="white-space:normal">Token saved under the wrong localStorage key</td><td class="c-e2e">E2E</td><td>no Python test ever runs your JavaScript</td></tr>
+        <tr><td style="white-space:normal">The verification email links to <code>localhost</code></td><td class="c-e2e">E2E</td><td>the mail was faked at every level below</td></tr>
+        <tr><td style="white-space:normal">A CSS change hides the submit button</td><td class="c-e2e">E2E</td><td>nothing below renders a page</td></tr>
+        <tr><td style="white-space:normal">Listing does N+1 queries</td><td class="c-load">Load</td><td>it passes, correctly, in 30 ms — with one user and three rows</td></tr>
+        <tr><td style="white-space:normal">Connection pool exhausts at 40 users</td><td class="c-load">Load</td><td>concurrency is the variable; no correctness test varies it</td></tr>
+        <tr><td style="white-space:normal">Memory grows 2 MB per request</td><td class="c-load">Load (soak)</td><td>needs hours of traffic to become visible</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 12 · WHERE THEY RUN ============ -->
+<section class="slide">
+  <div class="inner">
+    <p class="eyebrow">Placement</p>
+    <h2>Each level runs at a different moment</h2>
+    <p class="sub">Feedback speed decides placement: the faster the test, the closer to the keystroke it belongs.</p>
+
+    <figure>
+      <svg viewBox="0 0 960 300" role="img" aria-label="A timeline from writing code through commit, pull request and release, showing unit tests running on save, integration on commit, end-to-end on pull request, and load tests nightly before release.">
+        <defs><marker id="ar8" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto">
+          <polygon points="0,0.5 8,4 0,7.5" fill="currentColor"/></marker></defs>
+
+        <g color="var(--muted)"><path d="M40 70 H920" class="s-line" stroke="currentColor" marker-end="url(#ar8)"/></g>
+        <circle cx="120" cy="70" r="5" fill="var(--unit)"/>
+        <circle cx="360" cy="70" r="5" fill="var(--integ)"/>
+        <circle cx="600" cy="70" r="5" fill="var(--e2e)"/>
+        <circle cx="840" cy="70" r="5" fill="var(--load)"/>
+
+        <text x="120" y="54" text-anchor="middle" class="s-lab">on save</text>
+        <text x="360" y="54" text-anchor="middle" class="s-lab">on commit / push</text>
+        <text x="600" y="54" text-anchor="middle" class="s-lab">on pull request</text>
+        <text x="840" y="54" text-anchor="middle" class="s-lab">nightly / pre-release</text>
+
+        <rect x="36" y="100" width="168" height="90" rx="8" fill="var(--unit)" opacity=".16" stroke="var(--unit)" stroke-width="1.5"/>
+        <text x="120" y="126" text-anchor="middle" class="s-lab" style="fill:var(--unit);font-weight:650">Unit</text>
+        <text x="120" y="148" text-anchor="middle" class="s-mono">pytest -k thing</text>
+        <text x="120" y="168" text-anchor="middle" class="s-lab-s">under 1 s · in your editor</text>
+
+        <rect x="276" y="100" width="168" height="90" rx="8" fill="var(--integ)" opacity=".16" stroke="var(--integ)" stroke-width="1.5"/>
+        <text x="360" y="126" text-anchor="middle" class="s-lab" style="fill:var(--integ);font-weight:650">+ Integration</text>
+        <text x="360" y="148" text-anchor="middle" class="s-mono">uv run pytest</text>
+        <text x="360" y="168" text-anchor="middle" class="s-lab-s">~3 s · blocks the merge</text>
+
+        <rect x="516" y="100" width="168" height="90" rx="8" fill="var(--e2e)" opacity=".16" stroke="var(--e2e)" stroke-width="1.5"/>
+        <text x="600" y="126" text-anchor="middle" class="s-lab" style="fill:var(--e2e);font-weight:650">+ E2E</text>
+        <text x="600" y="148" text-anchor="middle" class="s-mono">pytest -m e2e</text>
+        <text x="600" y="168" text-anchor="middle" class="s-lab-s">minutes · needs the stack</text>
+
+        <rect x="756" y="100" width="168" height="90" rx="8" fill="var(--load)" opacity=".16" stroke="var(--load)" stroke-width="1.5"/>
+        <text x="840" y="126" text-anchor="middle" class="s-lab" style="fill:var(--load);font-weight:650">Load</text>
+        <text x="840" y="148" text-anchor="middle" class="s-mono">locust -u 50 -t 30s</text>
+        <text x="840" y="168" text-anchor="middle" class="s-lab-s">compared to last run</text>
+
+        <text x="40" y="234" class="s-lab-s">Cost of a failure found here:</text>
+        <text x="120" y="256" text-anchor="middle" class="s-lab-s" style="fill:var(--unit)">seconds</text>
+        <text x="360" y="256" text-anchor="middle" class="s-lab-s" style="fill:var(--integ)">minutes</text>
+        <text x="600" y="256" text-anchor="middle" class="s-lab-s" style="fill:var(--e2e)">an hour</text>
+        <text x="840" y="256" text-anchor="middle" class="s-lab-s" style="fill:var(--load)">a release slip</text>
+        <text x="40" y="288" class="s-lab-s">…and if none of them catch it: <tspan style="fill:var(--fg)">a production incident, at 3 a.m., with users watching.</tspan></text>
+      </svg>
+      <figcaption>Note the “+”: each stage runs everything from the stages before it. Nothing is skipped as you move right.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ 13 · THE WORD PROBLEM ============ -->
+<section class="slide">
+  <div class="inner">
+    <p class="eyebrow">A warning about vocabulary</p>
+    <h2>“Integration test” means five different things</h2>
+    <p class="sub">These names are not standardised. In an interview, or a new team, ask what they mean before you agree.</p>
+
+    <div class="grid g2">
+      <div class="card">
+        <h3>What people call “integration”</h3>
+        <ul class="tiny">
+          <li>two classes together, database still faked</li>
+          <li>the app in-process against a real database ← <em>this deck's usage</em></li>
+          <li>an HTTP call to a service running in a container</li>
+          <li>our service against <em>another team's</em> service</li>
+          <li>anything that isn't a unit test</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What people call “unit”</h3>
+        <ul class="tiny">
+          <li>one function, everything mocked (classic / “London”)</li>
+          <li>one <em>behaviour</em>, using real collaborators (“Chicago”)</li>
+          <li>anything that runs fast and needs no setup ← the practical definition</li>
+        </ul>
+        <p class="tiny">The argument over where “unit” ends is decades old and has never been settled. It doesn't need to be.</p>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:16px">
+      <strong>Better questions than “what level is this?”</strong>
+      <ul class="tiny" style="margin:8px 0 0">
+        <li>What is <em>real</em> in this test, and what is faked?</li>
+        <li>How long does it take, and what setup does it need?</li>
+        <li>When it goes red, will I know where to look?</li>
+        <li>Would it have caught the last bug we shipped?</li>
+      </ul>
+      Answer those four and the label stops mattering.
+    </div>
+  </div>
+</section>
+
+<!-- ============ 14 · TAKEAWAYS ============ -->
+<section class="slide">
+  <div class="inner">
+    <p class="eyebrow">Takeaways</p>
+    <h2>Six things worth keeping</h2>
+    <div class="grid g2">
+      <div class="card t-unit"><h3>1 · The axis is realism, not size</h3>
+        <p class="tiny">Unit → integration → E2E is one dial: how much of the system actually runs.
+        Every fake you remove buys truth and costs seconds.</p></div>
+      <div class="card t-load"><h3>2 · Load asks a different question</h3>
+        <p class="tiny">The other three ask “is it correct”. Load asks “is it still correct <em>fast enough</em>, at N users”.
+        Its output is a measurement, so it needs a baseline to be meaningful.</p></div>
+      <div class="card t-integ"><h3>3 · The middle layer is underrated</h3>
+        <p class="tiny">Most real bugs live in the seams between components — and integration tests hit those
+        seams at nearly unit-test speed.</p></div>
+      <div class="card t-e2e"><h3>4 · Write few E2E tests, and mean them</h3>
+        <p class="tiny">They catch what nothing else can, and they are the tests that people learn to ignore.
+        Reserve them for the journeys you cannot afford to break.</p></div>
+      <div class="card"><h3>5 · Catch it at the cheapest level that can</h3>
+        <p class="tiny">When an E2E test finds a bug a unit test could have found, that is a signal —
+        write the cheap test too, so next time it fails in two seconds instead of two minutes.</p></div>
+      <div class="card"><h3>6 · Coverage is not confidence</h3>
+        <p class="tiny">100% line coverage with everything mocked proves the code <em>runs</em>. It doesn't prove
+        the pieces fit, the browser works, or the thing survives Monday morning.</p></div>
+    </div>
+    <p class="tiny" style="margin-top:20px">
+      Live examples in this repo: <code class="mono">tests/test_security.py</code> (unit) ·
+      <code class="mono">tests/test_articles_api.py</code> (integration) ·
+      <code class="mono">tests/e2e/</code> (end-to-end) ·
+      <code class="mono">tests/load/locustfile.py</code> (load)
+    </p>
+  </div>
+</section>
+
+</div>
+
+<div class="bar">
+  <button id="prev">←</button><button id="next">→</button>
+  <span><b id="cur">1</b> / <span id="tot">14</span></span>
+  <span class="spacer"></span>
+  <span class="tiny" style="margin:0"><kbd>G</kbd> overview · <kbd>T</kbd> theme · <kbd>F</kbd> full · <kbd>P</kbd> print</span>
+  <button id="theme">theme</button>
+</div>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i = 0;
+  var root = document.documentElement;
+
+  document.getElementById('tot').textContent = slides.length;
+
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) { s.classList.toggle('active', k === i); });
+    document.getElementById('cur').textContent = i + 1;
+    document.getElementById('prog').style.width = ((i + 1) / slides.length * 100) + '%';
+    if (!document.body.classList.contains('overview')) {
+      slides[i].scrollTop = 0;
+      try { history.replaceState(null, '', '#' + (i + 1)); } catch (e) {}
+    } else {
+      slides[i].scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  function toggleOverview() {
+    document.body.classList.toggle('overview');
+    show(i);
+  }
+
+  document.getElementById('next').onclick = function () { show(i + 1); };
+  document.getElementById('prev').onclick = function () { show(i - 1); };
+  document.getElementById('theme').onclick = setTheme;
+
+  function setTheme() {
+    var now = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    root.setAttribute('data-theme', now);
+    try { localStorage.setItem('deck-theme', now); } catch (e) {}
+  }
+  try {
+    var saved = localStorage.getItem('deck-theme');
+    if (saved) root.setAttribute('data-theme', saved);
+  } catch (e) {}
+
+  slides.forEach(function (s, k) {
+    s.addEventListener('click', function () {
+      if (document.body.classList.contains('overview')) { toggleOverview(); show(k); }
+    });
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var k = e.key;
+    if (k === 'ArrowRight' || k === 'PageDown' || k === ' ' || k === 'n') { e.preventDefault(); show(i + 1); }
+    else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'b') { e.preventDefault(); show(i - 1); }
+    else if (k === 'Home') { e.preventDefault(); show(0); }
+    else if (k === 'End') { e.preventDefault(); show(slides.length - 1); }
+    else if (k === 'g' || k === 'G' || k === 'Escape') { e.preventDefault(); toggleOverview(); }
+    else if (k === 't' || k === 'T') { setTheme(); }
+    else if (k === 'f' || k === 'F') {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen();
+    }
+    else if (k === 'p' || k === 'P') { window.print(); }
+  });
+
+  var start = null;
+  document.addEventListener('touchstart', function (e) { start = e.changedTouches[0].clientX; }, { passive: true });
+  document.addEventListener('touchend', function (e) {
+    if (start === null) return;
+    var dx = e.changedTouches[0].clientX - start;
+    if (Math.abs(dx) > 60) show(i + (dx < 0 ? 1 : -1));
+    start = null;
+  }, { passive: true });
+
+  var h = parseInt((location.hash || '').slice(1), 10);
+  show(isNaN(h) ? 0 : h - 1);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+"""add users and liked_articles
+
+Revision ID: d37028d90694
+Revises: b773fddbe615
+Create Date: 2026-09-03 15:22:08.147849
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision: str = 'd37028d90694'
+down_revision: Union[str, Sequence[str], None] = 'b773fddbe615'
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    """Upgrade schema."""
+    op.create_table('users',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('username', sa.String(length=50), nullable=False),
+    sa.Column('email', sa.String(length=150), nullable=False),
+    sa.Column('hashed_password', sa.String(length=255), nullable=False),
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_users')),
+    sa.UniqueConstraint('email', name=op.f('uq_users_email')),
+    sa.UniqueConstraint('username', name=op.f('uq_users_username'))
+    )
+    op.create_table('liked_articles',
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('article_id', sa.Integer(), nullable=False),
+    sa.Column('liked_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['article_id'], ['articles.id'], name=op.f('fk_liked_articles_article_id_articles'), ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], name=op.f('fk_liked_articles_user_id_users'), ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('user_id', 'article_id', name=op.f('pk_liked_articles'))
+    )
+
+
+def downgrade() -> None:
+    """Downgrade schema."""
+    op.drop_table('liked_articles')
+    op.drop_table('users')

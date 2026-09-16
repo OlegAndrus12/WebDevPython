@@ -6,7 +6,7 @@ Postgres. Every JSON endpoint needs a token.
 
 ```bash
 cp .env.example .env                 # then put your NewsAPI key in it
-docker compose up --build --wait     # -> http://localhost:8080
+docker compose up --build --wait     # -> http://localhost:8009
 ```
 
 Full write-up — the topics this module covers, every endpoint, curl examples,

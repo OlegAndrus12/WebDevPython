@@ -1,6 +1,6 @@
 name: cnn06
 
-#   docker compose up --build --wait   app on http://localhost:8080
+#   docker compose up --build --wait   app on http://localhost:8006
 services:
   db:
     image: postgres:15
@@ -11,10 +11,10 @@ services:
       POSTGRES_DB: ${DB_NAME:-cnn}
     volumes:
       - cnn06_postgres_data:/var/lib/postgresql/data
-    # 5433 on the host, not 5432, to stay clear of a local Postgres. Inside
+    # 5406 on the host, not 5432, to stay clear of a local Postgres. Inside
     # the compose network the port is still 5432 -- this only remaps the host.
     ports:
-      - "${DB_PORT:-5433}:5432"
+      - "${DB_PORT:-5406}:5432"
     # `depends_on: condition: service_healthy` below is only meaningful because
     # of this block. Postgres accepts TCP connections seconds before it will
     # accept queries, so waiting on the port alone is not enough.
@@ -25,9 +25,9 @@ services:
       retries: 15
       start_period: 5s
 
-  web:
+  api:
     build: .
-    container_name: cnn06_web
+    container_name: cnn06_api
     # Brings in NEWS_API_KEY. The file is gitignored -- copy .env.example first.
     env_file: .env
     environment:
@@ -38,7 +38,7 @@ services:
       DB_HOST: db
       DB_PORT: 5432
     ports:
-      - "8080:8000"
+      - "8006:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -73,7 +73,7 @@ services:
       # Re-import servers.json on every start.
       PGADMIN_REPLACE_SERVERS_ON_STARTUP: "True"
     ports:
-      - "5050:80"
+      - "5106:80"
     volumes:
       # Preloads the `db` connection, so there is no "Register -> Server..."
       # dialog to fill in by hand.

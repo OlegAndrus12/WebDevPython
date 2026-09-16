@@ -6,7 +6,7 @@ FastAPI over Postgres. Nothing authenticates — the reader is named in the URL.
 
 ```bash
 cp .env.example .env                 # then put your NewsAPI key in it
-docker compose up --build --wait     # -> http://localhost:8080
+docker compose up --build --wait     # -> http://localhost:8008
 ```
 
 Full write-up — the topics this module covers, every endpoint, curl examples,

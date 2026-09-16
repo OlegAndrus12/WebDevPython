@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CNN Reader Architecture · CNN Reader</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #eceef1;
+    --surface: #ffffff;
+    --surface-2: #f4f6f8;
+    --sunken: #e6e9ed;
+    --ink: #161b22;
+    --ink-soft: #4d5665;
+    --muted: #77818e;
+    --line: #d2d7de;
+    --wire: #a7b0bb;
+    --accent: #c81e1e;
+    --accent-soft: #fceceb;
+    --flow-sync: #c81e1e;
+    --flow-async: #1f6f8b;
+    --flow-async-soft: #e5f0f5;
+    --shadow: 0 1px 2px rgba(22, 27, 34, .06), 0 10px 30px -20px rgba(22, 27, 34, .35);
+    --display: "IBM Plex Sans Condensed", "Helvetica Neue", Arial, sans-serif;
+    --body: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #10141a;
+      --surface: #171d25;
+      --surface-2: #1d242e;
+      --sunken: #131820;
+      --ink: #e6e9ee;
+      --ink-soft: #a8b2bf;
+      --muted: #7c8693;
+      --line: #2a323d;
+      --wire: #3f4a58;
+      --accent: #ff6060;
+      --accent-soft: #2b1719;
+      --flow-sync: #ff6060;
+      --flow-async: #4fb6d6;
+      --flow-async-soft: #10262f;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -20px rgba(0, 0, 0, .9);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #10141a;
+    --surface: #171d25;
+    --surface-2: #1d242e;
+    --sunken: #131820;
+    --ink: #e6e9ee;
+    --ink-soft: #a8b2bf;
+    --muted: #7c8693;
+    --line: #2a323d;
+    --wire: #3f4a58;
+    --accent: #ff6060;
+    --accent-soft: #2b1719;
+    --flow-sync: #ff6060;
+    --flow-async: #4fb6d6;
+    --flow-async-soft: #10262f;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -20px rgba(0, 0, 0, .9);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding-block: 32px 56px;
+    padding-inline: 20px;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1480px; margin: 0 auto; }
+
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px 32px;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 16px;
+    margin-bottom: 22px;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 6px;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(1.9rem, 5vw, 2.7rem);
+    line-height: 1;
+    letter-spacing: -.02em;
+    margin: 0;
+  }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 20px; }
+  .legend div { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-soft); }
+  .legend i { width: 24px; height: 0; border-top-width: 2px; border-top-style: solid; flex: none; }
+  .legend .s { border-color: var(--flow-sync); }
+  .legend .a { border-color: var(--flow-async); border-top-style: dashed; }
+  .legend .o { border-color: var(--wire); border-top-style: dotted; }
+
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr) 364px; gap: 24px; align-items: start; }
+
+  @media (max-width: 1080px) {
+    .cols { grid-template-columns: minmax(0, 1fr); }
+    .panel-col { order: -1; }
+  }
+
+  .board {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 8px;
+    overflow-x: auto;
+    box-shadow: var(--shadow);
+  }
+
+  svg.diagram { display: block; width: 100%; min-width: 1080px; height: auto; }
+
+  /* group frames */
+  .grp { fill: var(--sunken); stroke: var(--line); stroke-width: 1.5; }
+  .grp-t { font-family: var(--body); font-size: 12.5px; font-weight: 600; fill: var(--ink-soft); }
+  .tier { font-family: var(--mono); font-size: 9.5px; letter-spacing: .09em; fill: var(--muted); text-transform: uppercase; }
+  .frame { fill: none; stroke: var(--wire); stroke-width: 1.5; stroke-dasharray: 7 5; }
+  .note { font-family: var(--mono); font-size: 9.5px; fill: var(--muted); }
+
+  /* nodes */
+  .node { cursor: pointer; }
+  .node rect { fill: var(--surface); stroke: var(--line); stroke-width: 1.4; transition: fill .15s, stroke .15s; }
+  /* a frame is itself the .node, so it keeps its sunken fill and only its stroke reacts */
+  rect.grp.node { cursor: pointer; transition: stroke .15s; }
+  rect.grp.node:hover, rect.grp.node.sel { stroke: var(--accent); stroke-width: 2.4; }
+  rect.grp.node:focus-visible { outline: none; stroke: var(--accent); stroke-width: 2.4; }
+  .node .nm { font-family: var(--body); font-size: 12px; font-weight: 600; fill: var(--ink); }
+  .node .sub { font-family: var(--mono); font-size: 9.5px; fill: var(--muted); }
+  .node:hover rect { fill: var(--accent-soft); stroke: var(--accent); }
+  .node:focus-visible { outline: none; }
+  .node:focus-visible rect { stroke: var(--accent); stroke-width: 2.4; }
+  .node.sel rect { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2.4; }
+  .node.optional rect { stroke-dasharray: 5 4; }
+  .vol rect { fill: var(--surface-2); stroke: var(--line); stroke-width: 1.2; stroke-dasharray: 4 3; }
+  .vol text { font-family: var(--mono); font-size: 9.5px; fill: var(--muted); }
+
+  /* both shapes carry .svc: a node's child rect, and a group frame rect itself.
+     Only stroke animates, so a frame keeps its sunken fill. */
+  .svc.flash rect, rect.svc.flash { animation: flash 1.1s ease-out both; }
+  @keyframes flash {
+    0%, 100% { stroke: var(--line); stroke-width: 1.4; }
+    26%, 58% { stroke: var(--accent); stroke-width: 2.8; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .svc.flash rect, rect.svc.flash { animation: none; stroke: var(--accent); stroke-width: 2.8; }
+  }
+
+  /* wires */
+  .wire { fill: none; stroke-width: 1.6; }
+  .wire.sync { stroke: var(--flow-sync); }
+  .wire.async { stroke: var(--flow-async); stroke-dasharray: 6 4; }
+  .wire.obs { stroke: var(--wire); stroke-dasharray: 2 4; }
+  .elabel { font-family: var(--mono); font-size: 9.5px; fill: var(--ink-soft); }
+  #ar-sync path { fill: var(--flow-sync); }
+  #ar-async path { fill: var(--flow-async); }
+  #ar-obs path { fill: var(--wire); }
+
+  /* panel */
+  .panel-col { position: sticky; top: 20px; }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+  }
+
+  @media (max-width: 1080px) {
+    .panel-col { position: static; }
+    .panel { max-height: none; }
+  }
+
+  .panel-top { padding: 16px 18px 13px; border-bottom: 1px solid var(--line); }
+
+  .kind {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    border-radius: 4px;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .kind.async { background: var(--flow-async-soft); color: var(--flow-async); }
+
+  .panel-top h3 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 1.3rem;
+    margin: 9px 0 0;
+    letter-spacing: -.01em;
+  }
+
+  .panel section { padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  .panel section:last-child { border-bottom: 0; }
+
+  .panel h4 {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 9px;
+    font-weight: 500;
+  }
+
+  .panel ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .panel ul li { font-size: 13px; line-height: 1.45; padding-left: 14px; position: relative; }
+  .panel ul li::before { content: ""; position: absolute; left: 0; top: .5em; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+  code { font-family: var(--mono); font-size: .88em; background: var(--surface-2); padding: 1px 4px; border-radius: 3px; }
+
+  dl { margin: 0; display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); gap: 6px 12px; align-items: baseline; }
+  dt { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  dd { margin: 0; font-family: var(--mono); font-size: 11px; word-break: break-word; }
+
+  .files { display: flex; flex-direction: column; gap: 4px; }
+  .files code { background: none; padding: 0; font-size: 11px; color: var(--ink-soft); }
+
+  pre {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.7;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 10px 11px;
+    overflow-x: auto;
+    color: var(--ink-soft);
+  }
+
+  footer { margin-top: 22px; color: var(--muted); font-size: 11.5px; font-family: var(--mono); }
+
+  /* ---- served-page additions (the Artifact host supplied these) ---- */
+  [hidden] { display: none !important; }
+  img { max-width: 100%; }
+
+  .gate { min-height: 72vh; display: grid; place-items: center; padding: 40px 20px; }
+
+  .gate-card {
+    max-width: 470px;
+    text-align: center;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 34px 30px;
+    box-shadow: var(--shadow);
+  }
+
+  .gate-card h2 { font-family: var(--display); font-weight: 700; font-size: 1.75rem; margin: 6px 0 10px; letter-spacing: -.01em; }
+  .gate-card p { color: var(--ink-soft); margin: 0 0 20px; font-size: 14px; }
+
+  .gate-link {
+    display: inline-block;
+    font-family: var(--body);
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--accent);
+    color: #fff;
+    text-decoration: none;
+    padding: 9px 20px;
+    border-radius: 6px;
+  }
+
+  .gate-link:hover { filter: brightness(1.08); }
+  .gate-link.ghost { background: none; color: var(--ink-soft); border: 1px solid var(--line); }
+
+  .back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-decoration: none;
+    margin-bottom: 12px;
+  }
+
+  .back:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+    <div class="gate-card">
+        <p class="eyebrow">restricted</p>
+        <h2>Admins only</h2>
+        <p id="gate-msg">Checking your account&hellip;</p>
+        <a class="gate-link ghost" id="gate-action" href="/login" hidden>Sign in</a>
+    </div>
+</div>
+
+<div id="doc" hidden>
+<div class="wrap">
+  <header>
+    <div>
+      <p class="eyebrow">module 09 · cnn-website · head 31dd488df6fe</p>
+      <h1>CNN Reader Architecture</h1>
+    </div>
+    <div class="legend">
+      <div><i class="s"></i> a request is waiting</div>
+      <div><i class="a"></i> scheduled work</div>
+      <div><i class="o"></i> observes only</div>
+    </div>
+  </header>
+
+  <div class="cols">
+    <div class="board">
+      <svg class="diagram" viewBox="0 0 1360 880" role="img"
+           aria-label="The full cnn8-jwt stack: browser and NewsAPI outside, and inside Docker Compose the api container with its middleware, routers and modules, the worker and beat containers with their two tasks, Postgres with four tables, Redis with three databases, Mailpit with three emails, pgAdmin, Flower and four named volumes.">
+        <defs>
+          <marker id="ar-sync" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z"></path>
+          </marker>
+          <marker id="ar-async" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z"></path>
+          </marker>
+          <marker id="ar-obs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z"></path>
+          </marker>
+        </defs>
+
+        <!-- compose frame -->
+        <rect class="frame" x="24" y="100" width="1312" height="740" rx="10"></rect>
+
+        <!-- ============ WIRES (under nodes) ============ -->
+        <!-- request path -->
+        <path class="wire sync" d="M150,80 V188" marker-end="url(#ar-sync)"></path>
+        <text class="elabel" x="158" y="132">bearer token</text>
+
+        <path class="wire sync" d="M150,230 V258" marker-end="url(#ar-sync)"></path>
+        <path class="wire sync" d="M150,300 V330" marker-end="url(#ar-sync)"></path>
+
+        <path class="wire sync" d="M245,374 V440" marker-end="url(#ar-sync)"></path>
+        <text class="elabel" x="252" y="416">session</text>
+
+        <path class="wire sync" d="M371,374 V424 H660 V440" marker-end="url(#ar-sync)"></path>
+        <text class="elabel" x="470" y="419">verification</text>
+
+        <path class="wire sync" d="M497,374 V410 H1000 V440" marker-end="url(#ar-sync)"></path>
+        <text class="elabel" x="700" y="405">article:{id} · rl:{ip}</text>
+
+        <path class="wire sync" d="M686,352 H706 V120 H1150 V80" marker-end="url(#ar-sync)"></path>
+        <text class="elabel" x="880" y="114">1 request per page load</text>
+
+        <!-- scheduled path -->
+        <path class="wire async" d="M895,300 V440" marker-end="url(#ar-async)"></path>
+        <text class="elabel" x="902" y="336">enqueue</text>
+
+        <path class="wire async" d="M1179,440 V300" marker-end="url(#ar-async)"></path>
+        <text class="elabel" x="1186" y="336">consume</text>
+
+        <path class="wire async" d="M744,230 V430 H240 V440" marker-end="url(#ar-async)"></path>
+        <text class="elabel" x="330" y="425">upsert · recipients</text>
+
+        <path class="wire async" d="M752,230 V418 H820 V440" marker-end="url(#ar-async)"></path>
+        <text class="elabel" x="760" y="413">2 emails</text>
+
+        <path class="wire async" d="M1296,188 V120 H1250 V80" marker-end="url(#ar-async)"></path>
+        <text class="elabel" x="1206" y="146">headlines</text>
+
+        <!-- observers -->
+        <path class="wire obs" d="M244,690 V644" marker-end="url(#ar-obs)"></path>
+        <path class="wire obs" d="M1096,690 V644" marker-end="url(#ar-obs)"></path>
+
+        <!-- ============ OUTSIDE ============ -->
+        <g class="node" data-node="browser" tabindex="0" role="button" aria-label="Browser">
+          <rect x="40" y="20" width="220" height="60" rx="8"></rect>
+          <text class="nm" x="56" y="46">browser</text>
+          <text class="sub" x="56" y="65">localStorage · auth.js</text>
+        </g>
+        <g class="node" data-node="newsapi" tabindex="0" role="button" aria-label="NewsAPI, external">
+          <rect x="1100" y="20" width="220" height="60" rx="8"></rect>
+          <text class="nm" x="1116" y="46">newsapi.org</text>
+          <text class="sub" x="1116" y="65">external · 100 req/day</text>
+        </g>
+
+        <g class="node" data-node="compose" tabindex="0" role="button" aria-label="Docker Compose project">
+          <rect x="40" y="84" width="286" height="32" rx="6"></rect>
+          <text class="nm" x="56" y="105">docker compose</text>
+          <text class="sub" x="196" y="105">name: cnn8-jwt</text>
+        </g>
+
+        <!-- ============ API CONTAINER ============ -->
+        <rect class="grp svc node" x="48" y="136" width="652" height="264" rx="9" data-node="api" tabindex="0" role="button" aria-label="api container"></rect>
+        <text class="grp-t" x="64" y="160">api · uvicorn :8010 → 8000</text>
+
+        <text class="tier" x="64" y="181">middleware</text>
+        <g class="node" data-node="rate_limit" tabindex="0" role="button" aria-label="Rate limit middleware">
+          <rect x="60" y="188" width="290" height="42" rx="7"></rect>
+          <text class="nm" x="74" y="206">rate_limit</text>
+          <text class="sub" x="74" y="222">60 / 60s per IP · outermost</text>
+        </g>
+        <g class="node optional" data-node="toolbar" tabindex="0" role="button" aria-label="Debug toolbar middleware">
+          <rect x="366" y="188" width="320" height="42" rx="7"></rect>
+          <text class="nm" x="380" y="206">debug toolbar</text>
+          <text class="sub" x="380" y="222">DEBUG=true only · inner</text>
+        </g>
+
+        <text class="tier" x="64" y="251">routers</text>
+        <g class="node" data-node="r_pages" tabindex="0" role="button" aria-label="Pages router">
+          <rect x="60" y="258" width="146" height="42" rx="7"></rect>
+          <text class="nm" x="74" y="276">pages</text>
+          <text class="sub" x="74" y="292">HTML · 6</text>
+        </g>
+        <g class="node" data-node="r_api" tabindex="0" role="button" aria-label="Articles router">
+          <rect x="214" y="258" width="146" height="42" rx="7"></rect>
+          <text class="nm" x="228" y="276">api</text>
+          <text class="sub" x="228" y="292">articles · stats</text>
+        </g>
+        <g class="node" data-node="r_auth" tabindex="0" role="button" aria-label="Auth router">
+          <rect x="368" y="258" width="146" height="42" rx="7"></rect>
+          <text class="nm" x="382" y="276">auth</text>
+          <text class="sub" x="382" y="292">register · login</text>
+        </g>
+        <g class="node" data-node="r_newsletter" tabindex="0" role="button" aria-label="Newsletter router">
+          <rect x="522" y="258" width="164" height="42" rx="7"></rect>
+          <text class="nm" x="536" y="276">newsletter</text>
+          <text class="sub" x="536" y="292">PUT subscription</text>
+        </g>
+
+        <text class="tier" x="64" y="323">modules</text>
+        <g class="node" data-node="security" tabindex="0" role="button" aria-label="Security module">
+          <rect x="60" y="330" width="118" height="44" rx="7"></rect>
+          <text class="nm" x="72" y="349">security</text>
+          <text class="sub" x="72" y="365">JWT · roles</text>
+        </g>
+        <g class="node" data-node="repository" tabindex="0" role="button" aria-label="Repository module">
+          <rect x="186" y="330" width="118" height="44" rx="7"></rect>
+          <text class="nm" x="198" y="349">repository</text>
+          <text class="sub" x="198" y="365">every query</text>
+        </g>
+        <g class="node" data-node="mail" tabindex="0" role="button" aria-label="Mail module">
+          <rect x="312" y="330" width="118" height="44" rx="7"></rect>
+          <text class="nm" x="324" y="349">mail</text>
+          <text class="sub" x="324" y="365">FastMail</text>
+        </g>
+        <g class="node" data-node="cache" tabindex="0" role="button" aria-label="Cache module">
+          <rect x="438" y="330" width="118" height="44" rx="7"></rect>
+          <text class="nm" x="450" y="349">cache</text>
+          <text class="sub" x="450" y="365">cache-aside</text>
+        </g>
+        <g class="node" data-node="news_api" tabindex="0" role="button" aria-label="NewsAPI client module">
+          <rect x="564" y="330" width="122" height="44" rx="7"></rect>
+          <text class="nm" x="576" y="349">news_api</text>
+          <text class="sub" x="576" y="365">httpx per call</text>
+        </g>
+
+        <!-- ============ WORKER CONTAINERS ============ -->
+        <rect class="grp" x="724" y="136" width="588" height="264" rx="9"></rect>
+        <text class="grp-t" x="740" y="160">worker · beat — the second process type</text>
+
+        <text class="tier" x="740" y="181">tasks</text>
+        <g class="node" data-node="t_newsletter" tabindex="0" role="button" aria-label="send_newsletter task">
+          <rect x="760" y="188" width="250" height="42" rx="7"></rect>
+          <text class="nm" x="774" y="206">send_newsletter</text>
+          <text class="sub" x="774" y="222">08:00 · confirmed + subscribed</text>
+        </g>
+        <g class="node" data-node="t_stats" tabindex="0" role="button" aria-label="send_stats_report task">
+          <rect x="1026" y="188" width="270" height="42" rx="7"></rect>
+          <text class="nm" x="1040" y="206">send_stats_report</text>
+          <text class="sub" x="1040" y="222">07:00 · confirmed admins</text>
+        </g>
+
+        <text class="tier" x="740" y="251">processes</text>
+        <g class="node svc" data-node="beat" tabindex="0" role="button" aria-label="Celery beat">
+          <rect x="760" y="258" width="250" height="42" rx="7"></rect>
+          <text class="nm" x="774" y="276">beat</text>
+          <text class="sub" x="774" y="292">2 crontabs · 1 replica</text>
+        </g>
+        <g class="node svc" data-node="worker" tabindex="0" role="button" aria-label="Celery worker">
+          <rect x="1026" y="258" width="270" height="42" rx="7"></rect>
+          <text class="nm" x="1040" y="276">worker</text>
+          <text class="sub" x="1040" y="292">prefork ×2 · asyncio.run</text>
+        </g>
+
+        <text class="note" x="740" y="330">same image as api · only the command differs · celery has no --reload</text>
+        <text class="note" x="740" y="350">depends_on api: service_healthy — only one container migrates</text>
+        <text class="note" x="740" y="370">no lifespan · pools released when the process exits</text>
+
+        <!-- ============ POSTGRES ============ -->
+        <rect class="grp svc node" x="48" y="440" width="392" height="204" rx="9" data-node="postgres" tabindex="0" role="button" aria-label="postgres container"></rect>
+        <text class="grp-t" x="64" y="464">postgres :5410 → 5432</text>
+        <g class="node" data-node="t_sources" tabindex="0" role="button" aria-label="sources table">
+          <rect x="60" y="476" width="176" height="42" rx="7"></rect>
+          <text class="nm" x="72" y="494">sources</text>
+          <text class="sub" x="72" y="510">slug unique</text>
+        </g>
+        <g class="node" data-node="t_articles" tabindex="0" role="button" aria-label="articles table">
+          <rect x="248" y="476" width="180" height="42" rx="7"></rect>
+          <text class="nm" x="260" y="494">articles</text>
+          <text class="sub" x="260" y="510">url = natural key</text>
+        </g>
+        <g class="node" data-node="t_users" tabindex="0" role="button" aria-label="users table">
+          <rect x="60" y="530" width="176" height="42" rx="7"></rect>
+          <text class="nm" x="72" y="548">users</text>
+          <text class="sub" x="72" y="564">confirmed · role</text>
+        </g>
+        <g class="node" data-node="t_liked" tabindex="0" role="button" aria-label="liked_articles table">
+          <rect x="248" y="530" width="180" height="42" rx="7"></rect>
+          <text class="nm" x="260" y="548">liked_articles</text>
+          <text class="sub" x="260" y="564">composite PK</text>
+        </g>
+        <g class="node" data-node="migrations" tabindex="0" role="button" aria-label="Alembic migrations">
+          <rect x="60" y="584" width="368" height="40" rx="7"></rect>
+          <text class="nm" x="72" y="601">alembic</text>
+          <text class="sub" x="72" y="616">6 revisions · async env.py · run by api on boot</text>
+        </g>
+
+        <!-- ============ MAILPIT ============ -->
+        <rect class="grp svc node" x="480" y="440" width="360" height="204" rx="9" data-node="mailpit" tabindex="0" role="button" aria-label="mailpit container"></rect>
+        <text class="grp-t" x="496" y="464">mailpit :8210 · smtp :1010</text>
+        <g class="node" data-node="e_verify" tabindex="0" role="button" aria-label="Verification email">
+          <rect x="492" y="476" width="336" height="42" rx="7"></rect>
+          <text class="nm" x="504" y="494">verify_email.html</text>
+          <text class="sub" x="504" y="510">web process · BackgroundTask · swallows</text>
+        </g>
+        <g class="node" data-node="e_newsletter" tabindex="0" role="button" aria-label="Newsletter email">
+          <rect x="492" y="530" width="336" height="42" rx="7"></rect>
+          <text class="nm" x="504" y="548">newsletter.html</text>
+          <text class="sub" x="504" y="564">worker · raises so the task can count</text>
+        </g>
+        <g class="node" data-node="e_stats" tabindex="0" role="button" aria-label="Stats report email">
+          <rect x="492" y="584" width="336" height="40" rx="7"></rect>
+          <text class="nm" x="504" y="601">stats_report.html</text>
+          <text class="sub" x="504" y="616">worker · admins only</text>
+        </g>
+
+        <!-- ============ REDIS ============ -->
+        <rect class="grp svc node" x="880" y="440" width="432" height="204" rx="9" data-node="redis" tabindex="0" role="button" aria-label="redis container"></rect>
+        <text class="grp-t" x="896" y="464">redis :6310 → 6379 · persistence off</text>
+        <g class="node" data-node="db0" tabindex="0" role="button" aria-label="Redis database 0">
+          <rect x="892" y="476" width="408" height="42" rx="7"></rect>
+          <text class="nm" x="904" y="494">db 0</text>
+          <text class="sub" x="960" y="494">article cache · rate-limit counters</text>
+          <text class="sub" x="904" y="510">TTL 300s · JSON not pickle · failures swallowed</text>
+        </g>
+        <g class="node" data-node="db1" tabindex="0" role="button" aria-label="Redis database 1">
+          <rect x="892" y="530" width="408" height="42" rx="7"></rect>
+          <text class="nm" x="904" y="548">db 1</text>
+          <text class="sub" x="960" y="548">the celery broker</text>
+          <text class="sub" x="904" y="564">kept apart so a cache FLUSHALL spares the queue</text>
+        </g>
+        <g class="node" data-node="db2" tabindex="0" role="button" aria-label="Redis database 2">
+          <rect x="892" y="584" width="408" height="40" rx="7"></rect>
+          <text class="nm" x="904" y="601">db 2</text>
+          <text class="sub" x="960" y="601">task results · expire after 1h</text>
+        </g>
+
+        <!-- ============ OPS ============ -->
+        <g class="node svc" data-node="pgadmin" tabindex="0" role="button" aria-label="pgAdmin">
+          <rect x="48" y="690" width="392" height="58" rx="8"></rect>
+          <text class="nm" x="64" y="714">pgadmin :5110</text>
+          <text class="sub" x="64" y="732">preloaded server · where you set users.role by hand</text>
+        </g>
+        <g class="node svc optional" data-node="flower" tabindex="0" role="button" aria-label="Flower">
+          <rect x="880" y="690" width="432" height="58" rx="8"></rect>
+          <text class="nm" x="896" y="714">flower :5510</text>
+          <text class="sub" x="896" y="732">profile: debug · queued, active, retried, failed</text>
+        </g>
+
+        <!-- volumes -->
+        <text class="tier" x="48" y="782">named volumes</text>
+        <g class="vol">
+          <rect x="48" y="792" width="300" height="34" rx="6"></rect>
+          <text x="62" y="814">cnn8jwt_postgres_data</text>
+          <rect x="364" y="792" width="300" height="34" rx="6"></rect>
+          <text x="378" y="814">cnn8jwt_uv_cache</text>
+          <rect x="680" y="792" width="300" height="34" rx="6"></rect>
+          <text x="694" y="814">cnn8jwt_pgadmin_data</text>
+          <rect x="996" y="792" width="316" height="34" rx="6"></rect>
+          <text x="1010" y="814">cnn8jwt_beat_data</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="panel-col">
+      <div class="panel" id="panel" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <footer>docker-compose.yaml · news/ · migrations/ — 8 services, 12 routes, 4 tables, 2 tasks</footer>
+</div>
+
+</div>
+
+<script>
+  const N = {
+    compose: ["orchestration", "docker compose", [
+      "<code>name: cnn8-jwt</code> is pinned — Compose derives it from the directory, and a sibling copy shares that name.",
+      "<code>api</code>, <code>worker</code>, <code>beat</code> and <code>flower</code> are one image with four commands.",
+      "Only <code>api</code> migrates; the others gate on it being <em>healthy</em>, because two containers racing one migration deadlocks."
+    ], [
+      ["services", "8 (flower behind a profile)"],
+      ["ports", "8010 · 5410 · 6310 · 5110 · 8210 · 5510"],
+      ["gates", "db: service_healthy · redis/mailpit: service_started"],
+      ["volumes", "4 named"]
+    ], ["docker-compose.yaml", "Dockerfile"],
+      ["docker compose up --build --wait", "docker compose --profile debug up -d flower", "docker compose ps"]],
+
+    browser: ["client", "browser", [
+      "No cookie anywhere: the token sits in <code>localStorage</code> and <code>auth.js</code> attaches it as a bearer header.",
+      "That is why every page needs JS — a plain <code>&lt;form&gt;</code> cannot set a custom header.",
+      "The server has no idea who is signed in; the navbar and newsletter toggle are hydrated client-side."
+    ], [["key", "cnn_token"], ["header", "Authorization: Bearer"]],
+      ["news/static/auth.js"], ["localStorage.removeItem('cnn_token')"]],
+
+    newsapi: ["external", "newsapi.org", [
+      "The only rationed resource here: 100 requests a day on the free plan.",
+      "Two things spend them — every load of <code>GET /</code>, and every newsletter run.",
+      "The key travels in an <code>X-Api-Key</code> header; query strings end up in logs and history."
+    ], [["NEWS_API_KEY", "required"], ["DEFAULT_SOURCE", "cnn"], ["PAGE_SIZE", "12"], ["timeout", "10s"]],
+      ["news/news_api.py"], []],
+
+    rate_limit: ["middleware", "rate_limit", [
+      "Fixed window per client IP, counted in Redis <strong>db 0</strong> so the limit holds across processes.",
+      "Registered <em>last</em>, which makes it outermost — a 429 has no <code>scope[\"endpoint\"]</code>, so a toolbar outside it would 500.",
+      "<code>/api/*</code> only: a healthcheck that can be rate-limited into failing is a liability.",
+      "Fails open on <code>RedisError</code> and <code>RuntimeError</code>."
+    ], [
+      ["RATE_LIMIT_REQUESTS", "60"], ["RATE_LIMIT_WINDOW_SECONDS", "60"],
+      ["key", "rl:{ip}:{epoch // window}"], ["over", "429 + Retry-After"]
+    ], ["news/middleware.py"],
+      ["docker compose exec redis redis-cli -n 0 --scan --pattern 'rl:*'"]],
+
+    toolbar: ["middleware", "debug toolbar", [
+      "Only with <code>DEBUG=true</code>; the dependency lives in the <code>dev</code> group.",
+      "Splices itself in before <code>&lt;/body&gt;</code>, so it appears on HTML pages and never on <code>/api/*</code>.",
+      "Registered before the limiter so it sits inside it."
+    ], [["DEBUG", "false"], ["panels", "SQLAlchemy · Time · Profiling · Routes"]],
+      ["news/debug.py", "news/middleware.py"],
+      ["echo 'DEBUG=true' >> .env", "docker compose restart api"]],
+
+    r_pages: ["router", "pages", [
+      "Six server-rendered pages, all shells that fetch their own data client-side.",
+      "<code>GET /</code> is the one route that calls NewsAPI — one request per page load.",
+      "A NewsAPI refusal becomes an in-page banner, not a 500."
+    ], [["prefix", "/"], ["routes", "6"], ["response", "HTMLResponse"]],
+      ["news/routers/pages.py", "news/templates/"], []],
+
+    r_api: ["router", "api", [
+      "Articles list and detail, like/unlike, liked list, and stats.",
+      "<code>GET /api/articles/{id}</code> is the only cached route.",
+      "<code>GET /api/stats</code> is the only admin-gated route."
+    ], [["prefix", "/api"], ["auth", "bearer on all but nothing"], ["per_page", "1–100"]],
+      ["news/routers/api.py"],
+      ["curl -s \"$BASE/api/articles?per_page=2\" -H \"Authorization: Bearer $TOKEN\""]],
+
+    r_auth: ["router", "auth", [
+      "Register queues the verification mail and returns 201 — the account cannot log in yet.",
+      "Login checks the password <em>before</em> <code>confirmed</code>, or it becomes an enumeration oracle.",
+      "<code>request_email</code> answers identically whether or not the address exists."
+    ], [["prefix", "/api/auth"], ["routes", "5"], ["login body", "form-urlencoded"]],
+      ["news/routers/auth.py"], ["curl -s -X POST \"$BASE/api/auth/login\" -d 'username=…&password=…'"]],
+
+    r_newsletter: ["router", "newsletter", [
+      "One route, one method: <code>PUT /api/me/subscription</code> with <code>{\"subscribed\": bool}</code>.",
+      "A PUT because the body names the state to end up in — sending it twice changes nothing.",
+      "There is no unsubscribe link in the mail; opting out needs a login."
+    ], [["route", "PUT /api/me/subscription"], ["returns", "204"]],
+      ["news/routers/newsletter.py"],
+      ["curl -s -X PUT \"$BASE/api/me/subscription\" -H \"Authorization: Bearer $TOKEN\" \\\n  -H 'Content-Type: application/json' -d '{\"subscribed\":true}'"]],
+
+    security: ["module", "security", [
+      "Two token scopes from one key: <code>access_token</code> and <code>verification_token</code>. Without the scope check the signup link would be a bearer token.",
+      "<strong>422</strong> for a token this app did not sign, <strong>401</strong> for the wrong kind.",
+      "<code>role</code> is a native Postgres enum, read per request — a promotion needs no re-login. <strong>403</strong>, not 401, when the token is fine but the account is not admin.",
+      "<code>bcrypt</code> pinned <code>&lt;4.1</code>: passlib 1.7.4's self-test breaks on 4.1."
+    ], [
+      ["algorithm", "HS256"], ["claims", "sub · scope · exp"],
+      ["ACCESS_TOKEN_EXPIRE_MINUTES", "60"], ["roles", "user · admin"]
+    ], ["news/security.py"], []],
+
+    repository: ["module", "repository", [
+      "Every query lives here; no SQL anywhere else. It never commits — the caller owns the transaction.",
+      "<code>joinedload</code> is mandatory, not an optimisation: a lazy load raises <code>MissingGreenlet</code> under an async session.",
+      "The article upsert invalidates the cache only when the row actually changed."
+    ], [["session", "AsyncSession"], ["writes", "flush(), never commit()"], ["expire_on_commit", "False"]],
+      ["news/repository.py"], []],
+
+    mail: ["module", "mail", [
+      "One module-level <code>FastMail</code>, three send functions.",
+      "The verification mail swallows SMTP errors; the two worker mails <strong>raise</strong>, so the task can count and log them.",
+      "Templates render in fastapi-mail's own Jinja env — no <code>url_for</code>, links built from a passed-in host."
+    ], [["MAIL_USE_CREDENTIALS", "false"], ["MAIL_FROM", "noreply@cnnreader.example"], ["PUBLIC_BASE_URL", "http://localhost:8010/"]],
+      ["news/mail.py", "news/templates/email/"], []],
+
+    cache: ["module", "cache", [
+      "Cache-aside on exactly one route, keyed <code>article:{id}</code> in db 0.",
+      "Writes invalidate; the TTL is only a backstop.",
+      "A cache failure is never a request failure — <code>RuntimeError</code> is caught too, because the tasks close their event loop after every run."
+    ], [["route", "GET /api/articles/{id}"], ["ARTICLE_CACHE_TTL_SECONDS", "300"], ["format", "Pydantic JSON"]],
+      ["news/cache.py"], ["docker compose exec redis redis-cli -n 0 GET article:1"]],
+
+    news_api: ["module", "news_api", [
+      "Opens an httpx client <strong>per call</strong>, not a module-level pool.",
+      "That is not style: a pooled connection belongs to the loop that opened it, and <code>asyncio.run</code> closes a loop per task — the old pool raised <code>Event loop is closed</code> on the second run.",
+      "<code>NewsAPIError</code> wraps both transport failures and NewsAPI's 200-with-an-error-body."
+    ], [["client", "per call, async with"], ["endpoints", "top-headlines · everything"]],
+      ["news/news_api.py"], []],
+
+    worker: ["service", "worker", [
+      "The first thing in this app that outlives a request — schedulable, retryable, observable.",
+      "Celery tasks are sync, every helper is async; <code>asyncio.run</code> bridges them with a fresh loop per task.",
+      "No fork guard, and that is measured: both pools are lazy, so at fork time there is nothing to inherit."
+    ], [
+      ["command", "celery -A news.celery_app worker --concurrency=2"],
+      ["pool", "prefork"], ["prefetch", "1"], ["time limits", "60 soft / 90 hard"], ["serializer", "json"]
+    ], ["news/celery_app.py", "news/tasks.py"],
+      ["docker compose exec worker celery -A news.celery_app inspect registered", "docker compose logs -f worker"]],
+
+    beat: ["service", "beat", [
+      "Schedules and runs nothing. A stack with beat and no worker queues jobs forever.",
+      "Exactly one replica — two beats double-send.",
+      "<code>crontab</code>, not an interval: an interval is measured from the last run and drifts from the clock on every restart."
+    ], [
+      ["newsletter", "crontab 0 8 * * * UTC"], ["stats report", "crontab 0 7 * * * UTC"],
+      ["--schedule", "/var/lib/celery/beat-schedule"]
+    ], ["news/celery_app.py"], ["docker compose logs -f beat"]],
+
+    t_newsletter: ["task", "send_newsletter", [
+      "One task, three steps: fetch headlines, upsert them, mail every confirmed <em>and</em> subscribed reader.",
+      "<strong>Nothing tracks what already went out</strong> — a re-run re-sends. It is a page of headlines on a schedule, not a diff.",
+      "Each send is wrapped, so one dead address is counted rather than abandoning the rest. Retries cover the NewsAPI fetch only."
+    ], [["schedule", "08:00 UTC"], ["NEWSLETTER_MAX_ARTICLES", "10"], ["returns", "{articles, sent, failed}"]],
+      ["news/tasks.py", "news/templates/email/newsletter.html"],
+      ["docker exec -it cnn8jwt_api celery -A news.celery_app call news.tasks.send_newsletter"]],
+
+    t_stats: ["task", "send_stats_report", [
+      "Mails the same numbers <code>GET /api/stats</code> returns, to confirmed admins only.",
+      "<code>subscribed</code> is deliberately not checked — that flag is the newsletter opt-in, and this is not the newsletter.",
+      "The <code>Stats</code> construction is duplicated between route and task; nothing enforces that they agree."
+    ], [["schedule", "07:00 UTC"], ["recipients", "confirmed AND role='admin'"], ["returns", "{sent, failed}"]],
+      ["news/tasks.py", "news/templates/email/stats_report.html"],
+      ["docker exec -it cnn8jwt_api python -c \"\\nfrom news.tasks import send_stats_report\\nprint(send_stats_report())\""]],
+
+    t_sources: ["table", "sources", [
+      "A NewsAPI source: <code>cnn</code>, <code>bbc-news</code>, <code>reuters</code>.",
+      "Get-or-create by <code>slug</code>, falling back to a slugified name."
+    ], [["columns", "id · slug (unique) · name"], ["relationship", "articles"]],
+      ["news/models.py"], ["docker compose exec db psql -U admin -d cnn -c '\\d sources'"]],
+
+    t_articles: ["table", "articles", [
+      "<code>url</code> is the natural key, because NewsAPI issues no stable id — a story seen twice stays one row.",
+      "<code>fetched_at</code> was dropped in an early migration, so nothing records staleness."
+    ], [["natural key", "url (unique)"], ["indexed", "source_id · published_at"], ["FK", "sources ON DELETE CASCADE"]],
+      ["news/models.py"], ["docker compose exec db psql -U admin -d cnn -c '\\d articles'"]],
+
+    t_users: ["table", "users", [
+      "<code>confirmed</code> and <code>subscribed</code> are separate questions: can we reach you, and may we.",
+      "Both carry <code>default</code> <em>and</em> <code>server_default</code> — one fills the Python object, the other backfills existing rows.",
+      "The two migrations chose opposite backfills: <code>confirmed=true</code> to avoid locking people out, <code>subscribed=false</code> to avoid inventing consent."
+    ], [["columns", "username · email · hashed_password"], ["flags", "confirmed · subscribed"], ["role", "enum user_role"]],
+      ["news/models.py"],
+      ["docker compose exec db psql -U admin -d cnn \\\n  -c \"SELECT username, confirmed, subscribed, role FROM users;\""]],
+
+    t_liked: ["table", "liked_articles", [
+      "A composite primary key <em>is</em> the integrity rule — that is what makes like/unlike idempotent.",
+      "<code>ON DELETE CASCADE</code> on both sides.",
+      "No <code>relationship()</code> or <code>secondary=</code>: reads go through explicit joins."
+    ], [["PK", "(user_id, article_id)"], ["liked_at", "server_default now()"]],
+      ["news/models.py"], []],
+
+    migrations: ["schema", "alembic", [
+      "Six revisions, async <code>env.py</code>, and <code>alembic.ini</code>'s URL left empty on purpose.",
+      "Two revisions carry hand edits autogenerate could not make: the <code>confirmed</code> backfill, and creating <em>and dropping</em> the <code>user_role</code> enum type — <code>add_column</code> does not create it, and a downgrade that leaves it behind cannot be re-upgraded.",
+      "Run by the api container on boot, and by nothing else."
+    ], [["head", "31dd488df6fe"], ["revisions", "6"], ["naming", "explicit convention on Base"]],
+      ["migrations/versions/", "migrations/env.py"],
+      ["docker compose exec api alembic current", "uv run alembic revision --autogenerate -m '…'"]],
+
+    e_verify: ["email", "verify_email.html", [
+      "Sent by the <strong>web process</strong> as a <code>BackgroundTask</code> — after the response, and after the transaction committed.",
+      "Link host comes from <code>request.base_url</code>, which is available because there <em>is</em> a request.",
+      "Confirming is idempotent: mail clients prefetch links.",
+      "SMTP failures are swallowed — invisible outside the app log."
+    ], [["scope", "verification_token"], ["expiry", "60 min"], ["target", "/verify-email?token=…"]],
+      ["news/mail.py", "news/routers/auth.py"],
+      ["curl -s 'http://localhost:8210/api/v1/messages?limit=1'"]],
+
+    e_newsletter: ["email", "newsletter.html", [
+      "Sent by the <strong>worker</strong>, so links come from <code>PUBLIC_BASE_URL</code> — there is no request to ask.",
+      "Raises on SMTP failure, unlike the verification mail, so the task can count it and carry on.",
+      "No unsubscribe link: opting out needs a login, so nothing unsubscribable sits in a mailbox. The cost is no <code>List-Unsubscribe</code> header."
+    ], [["from", "the worker"], ["cap", "10 articles"], ["on failure", "counted, skipped until next run"]],
+      ["news/templates/email/newsletter.html"], []],
+
+    e_stats: ["email", "stats_report.html", [
+      "A per-source article table, mailed to confirmed admins at 07:00.",
+      "Carries no unsubscribe link and owes none — it is not a mailing list. Stop being an admin.",
+      "Inline styles and a real <code>&lt;table&gt;</code>: Outlook renders mail through Word."
+    ], [["recipients", "role = 'admin'"], ["subject", "N articles from M sources"]],
+      ["news/templates/email/stats_report.html"], []],
+
+    db0: ["redis db", "db 0 — cache + limits", [
+      "Two unrelated tenants share it: article cache entries and rate-limit counters. Both are cheap to lose.",
+      "Everything here is derived from Postgres and re-fillable, which is what makes <code>FLUSHDB</code> safe.",
+      "Persistence is off <em>explicitly</em> — the image's default is not a cache config."
+    ], [["keys", "article:{id} · rl:{ip}:{bucket}"], ["TTL", "300s / window"], ["snapshotting", "--save \"\""]],
+      ["news/cache.py", "news/middleware.py"],
+      ["docker compose exec redis redis-cli -n 0 KEYS '*'", "docker compose exec redis redis-cli -n 0 FLUSHDB"]],
+
+    db1: ["redis db", "db 1 — the broker", [
+      "Where beat puts tasks and the worker takes them.",
+      "Separate from db 0 for a concrete reason: the cache-miss recipe is <code>FLUSHALL</code>, which on a shared database would delete every queued job and beat's schedule."
+    ], [["CELERY_BROKER_DB", "1"], ["queue", "celery (direct)"]],
+      ["news/celery_app.py"], ["docker compose exec redis redis-cli -n 1 DBSIZE"]],
+
+    db2: ["redis db", "db 2 — results", [
+      "Nothing in the app reads a task result. They are kept so Flower has something to show.",
+      "They expire on their own rather than filling the database forever."
+    ], [["CELERY_RESULT_DB", "2"], ["CELERY_RESULT_EXPIRES_SECONDS", "3600"]],
+      ["news/celery_app.py"], ["docker compose exec redis redis-cli -n 2 DBSIZE"]],
+
+    api: ["container", "api", [
+      "Migrates then serves: <code>uv sync --frozen && alembic upgrade head && uvicorn</code> — <code>&&</code> as gates, so a bad lock or migration stops the container.",
+      "The venv is at <code>/opt/venv</code>, outside the bind mount, so the host's <code>.venv</code> cannot shadow it — and first on PATH, so <code>alembic</code>, <code>uvicorn</code> and <code>celery</code> resolve bare.",
+      "<code>/healthz</code> runs a real <code>SELECT 1</code> and answers 503 — that is what worker and beat wait on."
+    ], [
+      ["port", "8010 → 8000"], ["reload", "--reload --reload-dir news"],
+      ["overrides", "DB_HOST=db · REDIS_HOST=redis · MAIL_SERVER=mailpit"],
+      ["routes", "12"], ["healthcheck", "urlopen /healthz · 5s"]
+    ], ["news/main.py", "Dockerfile"],
+      ["curl -s localhost:8010/healthz", "docker compose exec api alembic current"]],
+
+    postgres: ["container", "postgres", [
+      "The only source of truth. Its schema is Alembic's job — there is no <code>create_all</code> anywhere.",
+      "Async driver, same URL: <code>postgresql+psycopg</code> works under both engines.",
+      "<code>pool_pre_ping</code> is what quietly saves the worker — it spots a connection left on a closed event loop and reconnects."
+    ], [
+      ["image", "postgres:15"], ["port", "5410 → 5432"], ["db / user", "cnn / admin"],
+      ["volume", "cnn8jwt_postgres_data"], ["healthcheck", "pg_isready · 2s · 15 retries"]
+    ], ["news/db.py", "news/models.py"],
+      ["docker compose exec db psql -U admin -d cnn -c '\\dt'"]],
+
+    redis: ["container", "redis", [
+      "One container doing three unrelated jobs, kept apart by database number rather than by hope.",
+      "Persistence is off <em>explicitly</em>: the image ships <code>save 3600 1 …</code>, so without <code>--save \"\"</code> a restart reloads a snapshot."
+    ], [
+      ["image", "redis:7-alpine"], ["port", "6310 → 6379"],
+      ["command", "redis-server --save \"\" --appendonly no"],
+      ["healthcheck", "redis-cli ping · 2s"]
+    ], ["docker-compose.yaml"],
+      ["docker compose exec redis redis-cli INFO keyspace"]],
+
+    mailpit: ["container", "mailpit", [
+      "Accepts everything, delivers nothing — which is why the app can ship working mail defaults and nothing escapes to a real inbox.",
+      "No credentials and no TLS; <code>USE_CREDENTIALS=false</code> is what stops fastapi-mail authenticating.",
+      "No <code>--database</code> and no volume: every captured message is lost on restart."
+    ], [
+      ["ports", "8210 UI · 1010 SMTP"], ["in-network", "mailpit:1025"],
+      ["persistence", "none"], ["emails", "3"]
+    ], ["news/mail.py", "news/settings.py"],
+      ["open http://localhost:8210", "curl -X DELETE http://localhost:8210/api/v1/messages"]],
+
+    pgadmin: ["service", "pgadmin", [
+      "The <code>db</code> server arrives preloaded from <code>servers.json</code>, its password from a <code>.pgpass</code> the entrypoint copies on every start.",
+      "The copy is not optional: libpq refuses a group-readable password file, and a bind mount keeps the host's mode and uid.",
+      "This is where you promote someone — <code>users.role</code> renders as a dropdown, so a typo is impossible."
+    ], [["port", "5110 → 80"], ["login", "admin@gmail.com / admin"], ["SERVER_MODE", "False"]],
+      ["pgadmin/servers.json", "pgadmin/pgpass"], ["open http://localhost:5110"]],
+
+    flower: ["service", "flower", [
+      "Behind <code>profiles: [\"debug\"]</code>, so a plain <code>docker compose up</code> never starts it.",
+      "Run from the app's own image, so its Celery client cannot drift from the workers it inspects.",
+      "Shows queued, active, retried and failed tasks with arguments and tracebacks — which is how a retry storm becomes visible.",
+      "<code>FLOWER_UNAUTHENTICATED_API=1</code> is dev-only: that API exposes task arguments and a shutdown endpoint."
+    ], [["profile", "debug"], ["port", "5510"], ["reads", "db 1 + db 2"]],
+      ["docker-compose.yaml"],
+      ["docker compose --profile debug up -d flower", "curl -s http://localhost:5510/api/workers"]]
+  };
+
+  const esc = (s) => s.replace(/&(?![a-z#]+;)/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const ASYNC = new Set(["worker", "beat", "t_newsletter", "t_stats", "db1", "db2", "e_newsletter", "e_stats"]);
+  const panel = document.getElementById("panel");
+
+  function render(id) {
+    const n = N[id];
+    if (!n) return;
+    const [kind, name, theses, config, files, cmds] = n;
+
+    panel.innerHTML =
+      `<div class="panel-top">
+         <span class="kind${ASYNC.has(id) ? " async" : ""}">${kind}</span>
+         <h3>${name}</h3>
+       </div>
+       <section><ul>${theses.map((t) => `<li>${t}</li>`).join("")}</ul></section>
+       <section><h4>Configuration</h4>
+         <dl>${config.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
+       </section>
+       <section><h4>Where it lives</h4>
+         <div class="files">${files.map((f) => `<code>${esc(f)}</code>`).join("")}</div>
+       </section>` +
+      (cmds.length ? `<section><h4>Check it</h4><pre>${cmds.map(esc).join("\n")}</pre></section>` : "");
+
+    document.querySelectorAll("[data-node]").forEach((el) => el.classList.toggle("sel", el.dataset.node === id));
+    if (window.matchMedia("(max-width: 1080px)").matches) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    panel.scrollTop = 0;
+  }
+
+  /* clicking compose sweeps every service it starts */
+  let timers = [];
+
+  function sweep() {
+    timers.forEach(clearTimeout);
+    timers = [];
+    const tiles = [...document.querySelectorAll(".svc")];
+    tiles.forEach((t) => t.classList.remove("flash"));
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    tiles.forEach((tile, i) => {
+      const go = () => { tile.classList.remove("flash"); void tile.getBoundingClientRect(); tile.classList.add("flash"); };
+      if (reduce) go(); else timers.push(setTimeout(go, i * 150));
+    });
+  }
+
+  document.addEventListener("click", (e) => {
+    const hit = e.target.closest("[data-node]");
+    if (!hit) return;
+    render(hit.dataset.node);
+    if (hit.dataset.node === "compose") sweep();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const hit = e.target.closest("g[data-node]");
+    if (!hit) return;
+    e.preventDefault();
+    render(hit.dataset.node);
+    if (hit.dataset.node === "compose") sweep();
+  });
+
+  /* ---- admin gate ----------------------------------------------------
+     This page is server-rendered, and this app's auth is a bearer token in
+     localStorage rather than a cookie -- so the server cannot know who is
+     asking. The check therefore happens here, the same way /liked bounces
+     to /login. It is a UI gate: see the route's docstring in pages.py.
+  -------------------------------------------------------------------- */
+  const gate = document.getElementById("gate");
+  const doc = document.getElementById("doc");
+  const gateMsg = document.getElementById("gate-msg");
+  const gateAct = document.getElementById("gate-action");
+
+  function deny(message, label, href) {
+    gateMsg.textContent = message;
+    gateAct.textContent = label;
+    gateAct.setAttribute("href", href);
+    gateAct.hidden = false;
+  }
+
+  (async () => {
+    let token = null;
+    try { token = localStorage.getItem("cnn_token"); } catch { /* storage off */ }
+
+    if (!token) {
+      deny("Sign in with an admin account to read the architecture map.", "Sign in", "/login");
+      return;
+    }
+
+    let me;
+    try {
+      const res = await fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } });
+      if (res.status === 401) {
+        deny("That session has expired. Sign in again.", "Sign in", "/login");
+        return;
+      }
+      if (!res.ok) {
+        deny(`The API answered ${res.status}. Try again in a moment.`, "Back to CNN Reader", "/");
+        return;
+      }
+      me = await res.json();
+    } catch {
+      deny("Could not reach the API.", "Back to CNN Reader", "/");
+      return;
+    }
+
+    if (me.role !== "admin") {
+      deny(
+        `Signed in as ${me.username}, whose role is "${me.role}". This page needs the admin role.`,
+        "Back to CNN Reader",
+        "/"
+      );
+      return;
+    }
+
+    gate.hidden = true;
+    doc.hidden = false;
+    render("compose");
+  })();
+</script>
+</body>
+</html>

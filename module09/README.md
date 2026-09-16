@@ -68,12 +68,12 @@ container start.
 
 | | |
 | --- | --- |
-| the reader | <http://localhost:8080> |
-| interactive API docs (Swagger UI) | <http://localhost:8080/docs> |
-| the same schema, ReDoc | <http://localhost:8080/redoc> |
-| pgAdmin | <http://localhost:5050> — `admin@gmail.com` / `admin` |
+| the reader | <http://localhost:8009> |
+| interactive API docs (Swagger UI) | <http://localhost:8009/docs> |
+| the same schema, ReDoc | <http://localhost:8009/redoc> |
+| pgAdmin | <http://localhost:5109> — `admin@gmail.com` / `admin` |
 
-Try it end to end in the browser: open <http://localhost:8080>, click
+Try it end to end in the browser: open <http://localhost:8009>, click
 **Register**, create an account, log in, then click a heart on any story and
 open **Liked** in the navbar. pgAdmin takes about 25 seconds to finish booting
 and has the `db` connection preloaded, so there is no "Register → Server…"
@@ -86,12 +86,12 @@ flow's field name, not a mistake.
 ### App on the host, database in Docker
 
 ```bash
-docker compose up -d --wait db        # just Postgres, on localhost:5433
+docker compose up -d --wait db        # just Postgres, on localhost:5409
 uv run alembic upgrade head
 uv run uvicorn news:app --reload      # -> http://localhost:8000/docs
 ```
 
-The host app reads `DB_HOST=localhost` / `DB_PORT=5433` from `.env`; the
+The host app reads `DB_HOST=localhost` / `DB_PORT=5409` from `.env`; the
 container overrides both to `db:5432`, because inside the Compose network the
 database is a service name rather than a published port.
 
@@ -99,9 +99,9 @@ database is a service name rather than a published port.
 
 | service | container | host port | what it is |
 | --- | --- | --- | --- |
-| `api` | `cnn09_api` | 8080 | the app under uvicorn (`8000` inside) |
-| `db` | `cnn09_postgres` | 5433 | Postgres 15 (`5432` inside the network) |
-| `pgadmin` | `cnn09_pgadmin` | 5050 | |
+| `api` | `cnn09_api` | 8009 | the app under uvicorn (`8000` inside) |
+| `db` | `cnn09_postgres` | 5409 | Postgres 15 (`5432` inside the network) |
+| `pgadmin` | `cnn09_pgadmin` | 5109 | |
 
 `name: cnn09` at the top of `docker-compose.yaml` is load-bearing. Compose
 otherwise derives the project name from the directory, and more than one
@@ -260,11 +260,11 @@ Notes worth knowing before you rely on them:
 
 ## Testing it with curl
 
-Against Docker on port 8080. If you are running uvicorn on the host, use
+Against Docker on port 8009. If you are running uvicorn on the host, use
 `localhost:8000`. The sequence below is meant to be run in order.
 
 ```bash
-B=localhost:8080
+B=localhost:8009
 ```
 
 **Up, and reaching the database?**
@@ -412,7 +412,7 @@ commented in `.env.example`.
 | `DB_PASSWORD` | `admin` | a `SecretStr`; URL-escaped into the connection string |
 | `DB_NAME` | `cnn` | |
 | `DB_HOST` | `localhost` | Compose overrides this to `db` for the api container |
-| `DB_PORT` | `5433` | host-side; inside Compose the api container uses `5432` |
+| `DB_PORT` | `5409` | host-side; inside Compose the api container uses `5432` |
 | `DEFAULT_SOURCE` | `cnn` | which NewsAPI source the front page shows |
 | `PAGE_SIZE` | `12` | how many articles to request **from NewsAPI** |
 
@@ -528,7 +528,7 @@ head -1 .venv/bin/alembic     # is this path in *this* directory?
 rm -rf .venv && uv sync       # the fix
 ```
 
-**Port 8080, 5433 or 5050 already in use.** Something else is bound. The
+**Port 8009, 5409 or 5109 already in use.** Something else is bound. The
 database port can be overridden on the host side without editing the file:
 
 ```bash

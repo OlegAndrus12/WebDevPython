@@ -1,0 +1,15 @@
+# The image builds its own virtualenv; copying the host one in would shadow it
+# with binaries built for the wrong platform.
+.venv
+__pycache__
+*.pyc
+
+# Secrets reach the container through compose's env_file at run time, never
+# baked into a layer where `docker history` can read them back out.
+.env
+
+.git
+.gitignore
+README.md
+Dockerfile
+.dockerignore

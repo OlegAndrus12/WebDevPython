@@ -1,0 +1,67 @@
+{# The newsletter. Same rules as verify_email.html: it extends nothing, and
+   `url_for` is unavailable -- fastapi-mail renders this through its own Jinja
+   environment, not Starlette's, so every link is built from the `host` the
+   task passed in.
+
+   One difference worth knowing: `host` here is settings.public_base_url, not
+   request.base_url. This email is sent from a Celery worker, which has no
+   request to take a hostname from. #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>New on CNN Reader</title>
+</head>
+<body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #1a1a1a;">
+<p>Hi {{ username }},</p>
+
+<p>{{ articles | length }} new
+    {{ 'story' if articles | length == 1 else 'stories' }} since we last
+    wrote:</p>
+
+{# Inline styles on every element, and tables rather than flexbox, because a
+   mail client is not a browser: Gmail strips <style> blocks, Outlook renders
+   through Word. This is deliberately plainer than index.html. #}
+{% for article in articles %}
+    <div style="margin: 0 0 22px; padding: 0 0 18px; border-bottom: 1px solid #e5e5e5;">
+        <a href="{{ host }}article/{{ article.id }}"
+           style="font-size: 1.05em; font-weight: 600; color: #1a1a1a; text-decoration: none;">
+            {{ article.title }}
+        </a>
+
+        <div style="margin: 4px 0 0; font-size: 0.82em; color: #767676;">
+            {# source is eager-loaded by the repository -- a lazy load here
+               would raise MissingGreenlet rather than costing a query. #}
+            {{ article.source.name }}
+            {% if article.author %} · {{ article.author }}{% endif %}
+            {% if article.published_at %}
+                · {{ article.published_at.strftime('%d %b %Y, %H:%M') }} UTC
+            {% endif %}
+        </div>
+
+        {% if article.description %}
+            <p style="margin: 8px 0 0; color: #444;">{{ article.description }}</p>
+        {% endif %}
+    </div>
+{% endfor %}
+
+<p>
+    <a href="{{ host }}"
+       style="display: inline-block; padding: 10px 18px; background: #cc0000;
+              color: #ffffff; text-decoration: none; border-radius: 4px;">
+        Read on CNN Reader
+    </a>
+</p>
+
+{# No one-click unsubscribe link: turning the newsletter off requires being
+   logged in, so the footer points at the site rather than carrying a token
+   that would work for whoever the message gets forwarded to. #}
+<p style="font-size: 0.85em; color: #767676; margin-top: 28px;">
+    You are getting this because you subscribed to the CNN Reader newsletter.
+    To stop it, <a href="{{ host }}" style="color: #767676;">sign in</a> and
+    switch the newsletter off at the top of the front page.
+</p>
+
+<p style="font-size: 0.85em; color: #767676;">— CNN Reader</p>
+</body>
+</html>

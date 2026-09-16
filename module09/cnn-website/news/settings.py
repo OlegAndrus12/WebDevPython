@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     db_user: str = "admin"
     db_password: SecretStr = SecretStr("admin")
     db_host: str = "localhost"
-    db_port: int = 5433
+    db_port: int = 5409
     db_name: str = "cnn"
 
     default_source: str = "cnn"

@@ -1,0 +1,483 @@
+<title>Two Suites, One App</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #eceef1;
+    --surface: #ffffff;
+    --surface-2: #f4f6f8;
+    --sunken: #e6e9ed;
+    --ink: #161b22;
+    --ink-soft: #4d5665;
+    --muted: #77818e;
+    --line: #d2d7de;
+    --wire: #a7b0bb;
+    --real: #1f6f8b;
+    --real-soft: #e5f0f5;
+    --seam: #c81e1e;
+    --seam-soft: #fceceb;
+    --shadow: 0 1px 2px rgba(22, 27, 34, .06), 0 10px 30px -20px rgba(22, 27, 34, .35);
+    --display: "IBM Plex Sans Condensed", "Helvetica Neue", Arial, sans-serif;
+    --body: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #10141a;
+      --surface: #171d25;
+      --surface-2: #1d242e;
+      --sunken: #131820;
+      --ink: #e6e9ee;
+      --ink-soft: #a8b2bf;
+      --muted: #7c8693;
+      --line: #2a323d;
+      --wire: #3f4a58;
+      --real: #4fb6d6;
+      --real-soft: #10262f;
+      --seam: #ff6060;
+      --seam-soft: #2b1719;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -20px rgba(0, 0, 0, .9);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #10141a;
+    --surface: #171d25;
+    --surface-2: #1d242e;
+    --sunken: #131820;
+    --ink: #e6e9ee;
+    --ink-soft: #a8b2bf;
+    --muted: #7c8693;
+    --line: #2a323d;
+    --wire: #3f4a58;
+    --real: #4fb6d6;
+    --real-soft: #10262f;
+    --seam: #ff6060;
+    --seam-soft: #2b1719;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -20px rgba(0, 0, 0, .9);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding-block: 34px 64px;
+    padding-inline: 20px;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1300px; margin: 0 auto; }
+
+  /* --- header ---------------------------------------------------------- */
+
+  header.page {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px 32px;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 16px;
+    margin-bottom: 26px;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--seam);
+    margin: 0 0 6px;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(1.9rem, 5vw, 2.7rem);
+    line-height: 1;
+    letter-spacing: -.02em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .standfirst {
+    margin: 0;
+    max-width: 46ch;
+    color: var(--ink-soft);
+    font-size: 14.5px;
+  }
+
+  /* --- legend ---------------------------------------------------------- */
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 26px;
+    margin-bottom: 14px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+  .legend div { display: flex; align-items: center; gap: 9px; }
+  .legend i { flex: none; width: 26px; height: 0; border-top-width: 2px; border-top-style: solid; }
+  .legend i.wire { border-color: var(--wire); }
+  .legend i.real { border-color: var(--real); }
+  .legend i.fake { border-color: var(--wire); border-top-style: dashed; }
+  .legend i.cut  { border-color: var(--seam); border-top-style: double; border-top-width: 4px; }
+
+  /* --- figure ---------------------------------------------------------- */
+
+  figure.diagram {
+    margin: 0 0 40px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 20px 18px 16px;
+  }
+
+  .figwrap { overflow-x: auto; }
+  .figwrap svg { display: block; min-width: 940px; max-width: 100%; height: auto; }
+
+  figcaption {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    max-width: 92ch;
+  }
+  figcaption b { color: var(--ink); font-weight: 600; }
+
+  /* --- svg element classes --------------------------------------------- */
+
+  .box      { fill: var(--surface);   stroke: var(--line); stroke-width: 1.25; }
+  .box-app  { fill: var(--surface);   stroke: var(--ink);  stroke-width: 1.75; }
+  .box-fake { fill: var(--surface-2); stroke: var(--wire); stroke-width: 1.25; stroke-dasharray: 4 3; }
+  .box-real { fill: var(--surface);   stroke: var(--real); stroke-width: 1.5; }
+
+  .wireline { stroke: var(--wire); stroke-width: 1.5; fill: none; }
+  .realline { stroke: var(--real); stroke-width: 1.75; fill: none; }
+  .head     { fill: var(--wire);  stroke: none; }
+  .head-real{ fill: var(--real);  stroke: none; }
+  .cutmark  { stroke: var(--seam); stroke-width: 2.25; fill: none; stroke-linecap: round; }
+  .rule     { stroke: var(--line); stroke-width: 1; fill: none; }
+
+  .t-col   { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; fill: var(--muted); }
+  .t-lane  { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; fill: var(--muted); }
+  .t-cmd   { font-family: var(--mono); font-size: 11.5px; fill: var(--ink); }
+  .t-title { font-family: var(--body); font-size: 13px; font-weight: 600; fill: var(--ink); }
+  .t-sm    { font-family: var(--body); font-size: 12px; font-weight: 600; fill: var(--ink); }
+  .t-mono  { font-family: var(--mono); font-size: 10px; fill: var(--ink-soft); }
+  .t-tiny  { font-family: var(--mono); font-size: 9px; fill: var(--muted); }
+  .t-mute  { font-family: var(--body); font-size: 11px; fill: var(--muted); }
+  .t-seam  { font-family: var(--mono); font-size: 9.5px; fill: var(--seam); }
+  .t-none  { font-family: var(--body); font-size: 12px; font-style: italic; fill: var(--muted); }
+
+  /* --- prose ----------------------------------------------------------- */
+
+  section.panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px 22px 22px;
+  }
+
+  h2 {
+    font-family: var(--display);
+    font-size: 1.24rem;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    margin: 0 0 4px;
+  }
+  .kicker {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 12px;
+  }
+  section.panel p { margin: 0 0 12px; color: var(--ink-soft); font-size: 14px; max-width: 68ch; }
+  section.panel p:last-child { margin-bottom: 0; }
+  code {
+    font-family: var(--mono);
+    font-size: .88em;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: .08em .34em;
+    color: var(--ink);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .tablewrap { overflow-x: auto; }
+  table th {
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    padding: 0 14px 8px 0;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  table td {
+    padding: 11px 14px 11px 0;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+    color: var(--ink-soft);
+  }
+  table tr:last-child td { border-bottom: none; }
+  table td.seamcell { color: var(--ink); font-family: var(--mono); font-size: 11.5px; white-space: nowrap; }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: .18em .5em;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .tag.yes { background: var(--seam-soft); color: var(--seam); border: 1px solid var(--seam); }
+  .tag.no  { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+
+  footer.page {
+    margin-top: 32px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="page">
+    <div>
+      <p class="eyebrow">module09 · cnn-website · tests/</p>
+      <h1>Two Suites, One App</h1>
+    </div>
+    <p class="standfirst">
+      The same FastAPI application, exercised down two lanes that differ in exactly
+      one thing: which of its four dependencies get replaced on the way in.
+    </p>
+  </header>
+
+  <div class="legend" aria-hidden="true">
+    <div><i class="wire"></i> the app's own call</div>
+    <div><i class="cut"></i> seam — the suite substitutes here</div>
+    <div><i class="fake"></i> a stand-in, defined in conftest</div>
+    <div><i class="real"></i> the real running service</div>
+  </div>
+
+  <figure class="diagram">
+    <div class="figwrap">
+      <svg viewBox="0 0 1240 460" role="img"
+           aria-label="Two test lanes across five columns. The default lane runs the test in-process against the app over ASGITransport, and three of the app's dependencies are cut at a seam and replaced with an in-memory SQLite database, a FakeRedis dict and a captured outbox list. The opt-in e2e lane drives a headless Chrome over a real socket against the app running in the container, with no substitutions, reaching the real Postgres, Redis and Mailpit.">
+
+        <!-- column headers -->
+        <text class="t-col" x="230"  y="26" text-anchor="middle">the test</text>
+        <text class="t-col" x="425"  y="26" text-anchor="middle">how it reaches the app</text>
+        <text class="t-col" x="605"  y="26" text-anchor="middle">app under test</text>
+        <text class="t-col" x="830"  y="26" text-anchor="middle">the seam</text>
+        <text class="t-col" x="1110" y="26" text-anchor="middle">backing service</text>
+        <line class="rule" x1="160" y1="40" x2="1220" y2="40" />
+
+        <!-- ================= LANE 1 — default ================= -->
+
+        <text class="t-lane" x="140" y="165" text-anchor="end">default</text>
+        <text class="t-cmd"  x="140" y="184" text-anchor="end">uv run pytest</text>
+
+        <!-- the test -->
+        <rect class="box" x="160" y="106" width="140" height="136" rx="6" />
+        <text class="t-title" x="230" y="150" text-anchor="middle">test function</text>
+        <text class="t-mono"  x="230" y="174" text-anchor="middle">async def test_…</text>
+        <text class="t-mute"  x="230" y="198" text-anchor="middle">same process</text>
+
+        <line class="wireline" x1="300" y1="174" x2="322" y2="174" />
+        <polygon class="head" points="322,169 330,174 322,179" />
+
+        <!-- the wire in -->
+        <rect class="box" x="330" y="106" width="190" height="136" rx="6" />
+        <text class="t-title" x="425" y="150" text-anchor="middle">httpx AsyncClient</text>
+        <text class="t-mono"  x="425" y="174" text-anchor="middle">ASGITransport(app=app)</text>
+        <text class="t-mute"  x="425" y="198" text-anchor="middle">no socket, no port</text>
+
+        <line class="wireline" x1="520" y1="174" x2="542" y2="174" />
+        <polygon class="head" points="542,169 550,174 542,179" />
+
+        <!-- the app -->
+        <rect class="box-app" x="550" y="106" width="110" height="136" rx="6" />
+        <text class="t-sm"   x="605" y="152" text-anchor="middle">FastAPI app</text>
+        <text class="t-tiny" x="605" y="174" text-anchor="middle">news.main.app</text>
+        <text class="t-mute" x="605" y="196" text-anchor="middle">unmodified</text>
+
+        <!-- wire 1 : get_db -->
+        <text class="t-seam" x="830" y="112" text-anchor="middle">dependency_overrides[get_db]</text>
+        <line class="wireline" x1="660" y1="128" x2="812" y2="128" />
+        <line class="cutmark"  x1="818" y1="136" x2="828" y2="120" />
+        <line class="cutmark"  x1="830" y1="136" x2="840" y2="120" />
+        <line class="wireline" x1="846" y1="128" x2="992" y2="128" />
+        <polygon class="head" points="992,123 1000,128 992,133" />
+
+        <!-- wire 2 : redis -->
+        <text class="t-seam" x="830" y="158" text-anchor="middle">monkeypatch cache.redis_client · autouse</text>
+        <line class="wireline" x1="660" y1="174" x2="812" y2="174" />
+        <line class="cutmark"  x1="818" y1="182" x2="828" y2="166" />
+        <line class="cutmark"  x1="830" y1="182" x2="840" y2="166" />
+        <line class="wireline" x1="846" y1="174" x2="992" y2="174" />
+        <polygon class="head" points="992,169 1000,174 992,179" />
+
+        <!-- wire 3 : mail -->
+        <text class="t-seam" x="830" y="204" text-anchor="middle">monkeypatch mailer.send_message · autouse</text>
+        <line class="wireline" x1="660" y1="220" x2="812" y2="220" />
+        <line class="cutmark"  x1="818" y1="228" x2="828" y2="212" />
+        <line class="cutmark"  x1="830" y1="228" x2="840" y2="212" />
+        <line class="wireline" x1="846" y1="220" x2="992" y2="220" />
+        <polygon class="head" points="992,215 1000,220 992,225" />
+
+        <!-- the stand-ins -->
+        <rect class="box-fake" x="1000" y="108" width="220" height="40" rx="5" />
+        <text class="t-sm"   x="1014" y="130">SQLite :memory:</text>
+        <text class="t-tiny" x="1014" y="143">StaticPool · fresh per test</text>
+
+        <rect class="box-fake" x="1000" y="154" width="220" height="40" rx="5" />
+        <text class="t-sm"   x="1014" y="176">FakeRedis</text>
+        <text class="t-tiny" x="1014" y="189">a dict that really stores</text>
+
+        <rect class="box-fake" x="1000" y="200" width="220" height="40" rx="5" />
+        <text class="t-sm"   x="1014" y="222">outbox</text>
+        <text class="t-tiny" x="1014" y="235">list[SentEmail]</text>
+
+        <!-- ================= LANE 2 — opt-in ================= -->
+
+        <text class="t-lane" x="140" y="351" text-anchor="end">opt-in</text>
+        <text class="t-cmd"  x="140" y="370" text-anchor="end">pytest -m e2e</text>
+
+        <rect class="box" x="160" y="292" width="140" height="136" rx="6" />
+        <text class="t-title" x="230" y="336" text-anchor="middle">test function</text>
+        <text class="t-mono"  x="230" y="360" text-anchor="middle">def test_…</text>
+        <text class="t-mute"  x="230" y="384" text-anchor="middle">blocking, sync</text>
+
+        <line class="realline" x1="300" y1="360" x2="322" y2="360" />
+        <polygon class="head-real" points="322,355 330,360 322,365" />
+
+        <rect class="box" x="330" y="292" width="190" height="136" rx="6" />
+        <text class="t-title" x="425" y="336" text-anchor="middle">headless Chrome</text>
+        <text class="t-mono"  x="425" y="360" text-anchor="middle">localhost:8011</text>
+        <text class="t-mute"  x="425" y="384" text-anchor="middle">a real socket, real auth.js</text>
+
+        <line class="realline" x1="520" y1="360" x2="542" y2="360" />
+        <polygon class="head-real" points="542,355 550,360 542,365" />
+
+        <rect class="box-app" x="550" y="292" width="110" height="136" rx="6" />
+        <text class="t-sm"   x="605" y="338" text-anchor="middle">FastAPI app</text>
+        <text class="t-tiny" x="605" y="360" text-anchor="middle">cnn8jwt_api</text>
+        <text class="t-mute" x="605" y="382" text-anchor="middle">unmodified</text>
+
+        <!-- no seams -->
+        <text class="t-none" x="830" y="352" text-anchor="middle">nothing substituted</text>
+        <text class="t-tiny" x="830" y="370" text-anchor="middle">same code, another process</text>
+
+        <line class="realline" x1="660" y1="314" x2="992" y2="314" />
+        <polygon class="head-real" points="992,309 1000,314 992,319" />
+        <line class="realline" x1="660" y1="360" x2="822" y2="360" />
+        <line class="realline" x1="838" y1="360" x2="992" y2="360" />
+        <polygon class="head-real" points="992,355 1000,360 992,365" />
+        <line class="realline" x1="660" y1="406" x2="992" y2="406" />
+        <polygon class="head-real" points="992,401 1000,406 992,411" />
+
+        <rect class="box-real" x="1000" y="294" width="220" height="40" rx="5" />
+        <text class="t-sm"   x="1014" y="316">Postgres</text>
+        <text class="t-tiny" x="1014" y="329">:5411 · committed rows</text>
+
+        <rect class="box-real" x="1000" y="340" width="220" height="40" rx="5" />
+        <text class="t-sm"   x="1014" y="362">Redis</text>
+        <text class="t-tiny" x="1014" y="375">:6311 · limiter must be off</text>
+
+        <rect class="box-real" x="1000" y="386" width="220" height="40" rx="5" />
+        <text class="t-sm"   x="1014" y="408">Mailpit</text>
+        <text class="t-tiny" x="1014" y="421">:8211 · link read back out</text>
+
+      </svg>
+    </div>
+
+    <figcaption>
+      Both lanes run <b>the same application object</b> — no test build, no branch inside
+      <code>news/</code>. The default lane cuts three dependencies at the seams marked in red, so it
+      needs no Docker; what it gives up is everything those seams hide, including every line of
+      <code>auth.js</code>. A fourth seam, <code>news.db.get_session</code>, is not drawn — it belongs
+      to the Celery tasks, which open their own session instead of borrowing a request's.
+    </figcaption>
+  </figure>
+
+  <section class="panel">
+    <h2>The four seams</h2>
+    <p class="kicker">the fourth is not on the request path, so it is not in the drawing</p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Seam</th>
+            <th>Mechanism</th>
+            <th>Autouse</th>
+            <th>Because</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="seamcell">news.db.get_db</td>
+            <td>app.dependency_overrides</td>
+            <td><span class="tag no">no — via client</span></td>
+            <td>Keyed on the function object, so one line also covers the
+              <code>Depends(get_db)</code> inside <code>news/security.py</code>.</td>
+          </tr>
+          <tr>
+            <td class="seamcell">news.cache.redis_client</td>
+            <td>monkeypatch.setattr</td>
+            <td><span class="tag yes">yes</span></td>
+            <td>Forgetting it stays green: <code>news/cache.py</code> swallows the connection error
+              and calls it a miss.</td>
+          </tr>
+          <tr>
+            <td class="seamcell">mail.mailer.send_message</td>
+            <td>monkeypatch.setattr</td>
+            <td><span class="tag yes">yes</span></td>
+            <td>Mailpit really is on <code>:1011</code>, so an unpatched test would
+              <em>succeed</em> at sending mail.</td>
+          </tr>
+          <tr>
+            <td class="seamcell">news.db.get_session</td>
+            <td>task_session fixture</td>
+            <td><span class="tag no">no — deliberately</span></td>
+            <td>A task test that forgets it reaches for Postgres and fails loudly, which is the right
+              kind of failure.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="page">
+    tests/conftest.py · tests/e2e/conftest.py · pyproject.toml [tool.pytest.ini_options]
+  </footer>
+
+</div>

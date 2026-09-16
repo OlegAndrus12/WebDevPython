@@ -1,0 +1,37 @@
+{# The verification email. Not a page: it extends nothing, since base.html's
+   stylesheet link and navbar would be dead weight in a mail client, and
+   `url_for` is unavailable here -- fastapi-mail renders this through its own
+   Jinja environment, not Starlette's, so the link is built from the `host`
+   the route passed in. #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Confirm your email</title>
+</head>
+<body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #1a1a1a;">
+<p>Hi {{ username }},</p>
+
+<p>Someone signed this address up for <strong>CNN Reader</strong>. Confirm it to
+    finish creating the account and log in:</p>
+
+<p>
+    {# `host` is request.base_url, which Starlette renders with a trailing
+       slash -- hence no separator before "verify-email". #}
+    <a href="{{ host }}verify-email?token={{ token }}"
+       style="display: inline-block; padding: 10px 18px; background: #cc0000;
+              color: #ffffff; text-decoration: none; border-radius: 4px;">
+        Confirm this email address
+    </a>
+</p>
+
+<p style="font-size: 0.9em; color: #555;">Or paste this into your browser:<br>
+    {{ host }}verify-email?token={{ token }}</p>
+
+<p style="font-size: 0.9em; color: #555;">The link is good for
+    {{ expires_minutes }} minutes. If it was not you, ignore this email --
+    without the link the account cannot be used.</p>
+
+<p>— CNN Reader</p>
+</body>
+</html>

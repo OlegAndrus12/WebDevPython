@@ -19,7 +19,7 @@ cnn-website/
     templates/        base, index, article, _card
     static/styles.css
   migrations/         Alembic: env.py + two revisions
-  docker-compose.yaml db + web + pgAdmin
+  docker-compose.yaml db + api + pgAdmin
 ```
 
 **Stack:** Flask 3.1 · SQLAlchemy 2.0 (sync) · Alembic 1.19 · psycopg 3 ·
@@ -52,10 +52,10 @@ container start — the `command:` in `docker-compose.yaml` is
 
 | | |
 | --- | --- |
-| the reader | <http://localhost:8080> |
-| pgAdmin | <http://localhost:5050> — `admin@gmail.com` / `admin` |
+| the reader | <http://localhost:8006> |
+| pgAdmin | <http://localhost:5106> — `admin@gmail.com` / `admin` |
 
-Open <http://localhost:8080> and you land on the headlines. The navbar's topic
+Open <http://localhost:8006> and you land on the headlines. The navbar's topic
 links and search box both re-query NewsAPI; clicking a card's title opens the
 detail page, which is rendered from the database. pgAdmin takes about 25
 seconds to finish booting and has the `db` connection preloaded, so there is no
@@ -66,13 +66,13 @@ seconds to finish booting and has the `db` connection preloaded, so there is no
 Useful when you want a debugger or an editor's reload attached to the app.
 
 ```bash
-docker compose up -d --wait db        # just Postgres, on localhost:5433
+docker compose up -d --wait db        # just Postgres, on localhost:5406
 uv run alembic upgrade head
 uv run flask --app cnn_website run --debug    # -> http://localhost:5000
 ```
 
 `--debug` gives you the reloader and the interactive traceback page. The host
-app reads `DB_HOST=localhost` / `DB_PORT=5433` from `.env`; the container
+app reads `DB_HOST=localhost` / `DB_PORT=5406` from `.env`; the container
 overrides both to `db:5432`, because inside the Compose network the database is
 a service name rather than a published port.
 
@@ -80,9 +80,9 @@ a service name rather than a published port.
 
 | service | container | host port | what it is |
 | --- | --- | --- | --- |
-| `web` | `cnn06_web` | 8080 | the Flask app under the dev server |
-| `db` | `cnn06_postgres` | 5433 | Postgres 15 (`5432` inside the network) |
-| `pgadmin` | `cnn06_pgadmin` | 5050 | <http://localhost:5050> |
+| `api` | `cnn06_api` | 8006 | the Flask app under the dev server |
+| `db` | `cnn06_postgres` | 5406 | Postgres 15 (`5432` inside the network) |
+| `pgadmin` | `cnn06_pgadmin` | 5106 | <http://localhost:5106> |
 
 All three start with a plain `docker compose up`. pgAdmin logs in with
 `admin@gmail.com` / `admin`, and its `db` connection is preloaded from
@@ -96,10 +96,10 @@ project on this machine is called `cnn-website` — without an explicit name a
 ### Everyday commands
 
 ```bash
-docker compose logs -f web                 # follow the app log
-docker compose exec web sh                 # a shell in the app container
+docker compose logs -f api                 # follow the app log
+docker compose exec api sh                 # a shell in the app container
 docker compose exec db psql -U admin -d cnn    # a psql prompt
-docker compose exec web alembic current    # which revision it is on
+docker compose exec api alembic current    # which revision it is on
 docker compose down                        # stop; keeps the database volume
 docker compose down -v                     # stop and delete the database
 ```
@@ -206,11 +206,11 @@ Notes worth knowing before you rely on them:
 
 ## Testing it with curl
 
-Against the Compose stack on port 8080. If you are running on the host with
+Against the Compose stack on port 8006. If you are running on the host with
 `flask run`, use `localhost:5000` instead.
 
 ```bash
-B=localhost:8080
+B=localhost:8006
 ```
 
 **Is it up, and can it reach the database?**
@@ -315,8 +315,8 @@ Compose overrides the database host without editing a file.
 | `DB_USER` | `admin` | also fed to Postgres itself by Compose |
 | `DB_PASSWORD` | `admin` | a `SecretStr`; URL-escaped into the connection string |
 | `DB_NAME` | `cnn` | |
-| `DB_HOST` | `localhost` | Compose overrides this to `db` for the web container |
-| `DB_PORT` | `5433` | host-side; inside Compose the web container uses `5432` |
+| `DB_HOST` | `localhost` | Compose overrides this to `db` for the api container |
+| `DB_PORT` | `5406` | host-side; inside Compose the api container uses `5432` |
 | `DEFAULT_SOURCE` | `cnn` | which NewsAPI source the front page shows |
 | `PAGE_SIZE` | `12` | how many articles to request **from NewsAPI** |
 | `SECRET_KEY` | `dev-only-not-a-real-secret` | Flask session cookies |
@@ -361,7 +361,7 @@ uv run alembic upgrade head
 ### Adding an article without spending a NewsAPI request
 
 ```bash
-docker compose exec -T web python <<'EOF'
+docker compose exec -T api python <<'EOF'
 from cnn_website.db import get_session
 from cnn_website.repository import Repository
 
@@ -400,14 +400,14 @@ rm -rf .venv && uv sync       # the fix
 **`ValidationError: news_api_key Field required` at startup.** There is no
 `.env`, or it has no key in it. `cp .env.example .env` and fill it in.
 
-**Port 8080, 5433 or 5050 already in use.** Something else is bound. The
+**Port 8006, 5406 or 5106 already in use.** Something else is bound. The
 database port can be overridden on the host side without editing the file:
 
 ```bash
 DB_PORT=5533 docker compose up -d --wait db
 ```
 
-For the app port, edit the `ports:` mapping for the `web` service — only the
+For the app port, edit the `ports:` mapping for the `api` service — only the
 left-hand number matters.
 
 **`rateLimited` or a banner on the front page.** The free plan is 100 requests

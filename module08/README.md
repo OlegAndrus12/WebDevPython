@@ -66,13 +66,13 @@ container start — the `command:` in `docker-compose.yaml` is
 
 | | |
 | --- | --- |
-| the reader | <http://localhost:8080> |
-| interactive API docs (Swagger UI) | <http://localhost:8080/docs> |
-| the same schema, ReDoc | <http://localhost:8080/redoc> |
-| pgAdmin | <http://localhost:5050> — `admin@gmail.com` / `admin` |
+| the reader | <http://localhost:8008> |
+| interactive API docs (Swagger UI) | <http://localhost:8008/docs> |
+| the same schema, ReDoc | <http://localhost:8008/redoc> |
+| pgAdmin | <http://localhost:5108> — `admin@gmail.com` / `admin` |
 
-Try the whole feature in the browser: open <http://localhost:8080/docs> and
-`POST /api/users` to create a reader, then open <http://localhost:8080>, pick
+Try the whole feature in the browser: open <http://localhost:8008/docs> and
+`POST /api/users` to create a reader, then open <http://localhost:8008>, pick
 that reader in the navbar dropdown, click a heart on any story, and open
 **Liked** in the navbar. Clicking a heart with nobody picked reveals a banner
 instead — reading needs no reader, only liking does. pgAdmin takes about 25
@@ -81,12 +81,12 @@ seconds to finish booting and has the `db` connection preloaded.
 ### App on the host, database in Docker
 
 ```bash
-docker compose up -d --wait db        # just Postgres, on localhost:5433
+docker compose up -d --wait db        # just Postgres, on localhost:5408
 uv run alembic upgrade head
 uv run uvicorn news:app --reload      # -> http://localhost:8000/docs
 ```
 
-The host app reads `DB_HOST=localhost` / `DB_PORT=5433` from `.env`; the
+The host app reads `DB_HOST=localhost` / `DB_PORT=5408` from `.env`; the
 container overrides both to `db:5432`, because inside the Compose network the
 database is a service name rather than a published port.
 
@@ -94,9 +94,9 @@ database is a service name rather than a published port.
 
 | service | container | host port | what it is |
 | --- | --- | --- | --- |
-| `api` | `cnn08_api` | 8080 | the app under uvicorn (`8000` inside) |
-| `db` | `cnn08_postgres` | 5433 | Postgres 15 (`5432` inside the network) |
-| `pgadmin` | `cnn08_pgadmin` | 5050 | <http://localhost:5050> |
+| `api` | `cnn08_api` | 8008 | the app under uvicorn (`8000` inside) |
+| `db` | `cnn08_postgres` | 5408 | Postgres 15 (`5432` inside the network) |
+| `pgadmin` | `cnn08_pgadmin` | 5108 | <http://localhost:5108> |
 
 pgAdmin logs in with `admin@gmail.com` / `admin`; the `db` connection is
 preloaded from `pgadmin/servers.json`.
@@ -279,11 +279,11 @@ Notes worth knowing before you rely on them:
 
 ## Testing it with curl
 
-Against the Compose stack on port 8080. If you are running uvicorn on the host,
+Against the Compose stack on port 8008. If you are running uvicorn on the host,
 use `localhost:8000` instead. The sequence below is meant to be run in order.
 
 ```bash
-B=localhost:8080
+B=localhost:8008
 ```
 
 **Is it up, and can it reach the database?**
@@ -456,7 +456,7 @@ curl -s -o /dev/null -w '%{http_code}\n' $B/article/1      # 200
 curl -s -o /dev/null -w '%{http_code}\n' $B/liked          # 200, an empty shell
 ```
 
-In a browser: open <http://localhost:8080>, pick a reader in the navbar
+In a browser: open <http://localhost:8008>, pick a reader in the navbar
 dropdown, then click a heart. Clicking one with nobody picked reveals a banner
 instead — reading needs no reader, only liking does.
 
@@ -474,7 +474,7 @@ Compose overrides the database host without editing a file.
 | `DB_PASSWORD` | `admin` | a `SecretStr`; URL-escaped into the connection string |
 | `DB_NAME` | `cnn` | |
 | `DB_HOST` | `localhost` | Compose overrides this to `db` for the api container |
-| `DB_PORT` | `5433` | host-side; inside Compose the api container uses `5432` |
+| `DB_PORT` | `5408` | host-side; inside Compose the api container uses `5432` |
 | `DEFAULT_SOURCE` | `cnn` | which NewsAPI source the front page shows |
 | `PAGE_SIZE` | `12` | how many articles to request **from NewsAPI** |
 
@@ -601,7 +601,7 @@ rm -rf .venv && uv sync       # the fix
 **`ValidationError: news_api_key Field required` at startup.** There is no
 `.env`, or it has no key in it. `cp .env.example .env` and fill it in.
 
-**Port 8080, 5433 or 5050 already in use.** Something else is bound. The database
+**Port 8008, 5408 or 5108 already in use.** Something else is bound. The database
 port can be overridden on the host side without editing the file:
 
 ```bash

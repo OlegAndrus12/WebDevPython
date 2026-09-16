@@ -17,10 +17,13 @@ concrete — run it, break it, read why it broke.
 ├── module07/   The same app on FastAPI, async end to end
 ├── module08/   A full REST surface: writes, sub-resources and relations
 ├── module09/   JWT authentication
+├── module10/   Email, Redis and a Celery worker
+├── module11/   Testing: unit, integration, end-to-end and load
 ```
 
-Modules 06 to 09 are four iterations of **one** application — the same news reader, rebuilt as each
-new idea arrives. All four publish the same ports, so only one runs at a time.
+Modules 06 to 11 are six iterations of **one** application — the same news reader, rebuilt as each
+new idea arrives. Every published port ends in the module number (module07's app is on `8007`,
+module11's on `8011`), so all six can run at the same time.
 
 **Conventions used throughout:**
 
@@ -235,7 +238,7 @@ spells out every field — which is exactly the work the next module hands to th
 
 ```bash
 cd module06/cnn-website && cp .env.example .env    # add your NewsAPI key
-docker compose up --build --wait                   # -> http://localhost:8080
+docker compose up --build --wait                   # -> http://localhost:8006
 ```
 
 📖 Setup, endpoints, curl examples and configuration: **[module06/README.md](module06/README.md)**
@@ -261,7 +264,7 @@ lazy-loading a relationship, harmless-but-slow under Flask, is a **crash** (`Mis
 
 ```bash
 cd module07/cnn-website && cp .env.example .env    # add your NewsAPI key
-docker compose up --build --wait                   # -> http://localhost:8080/docs
+docker compose up --build --wait                   # -> http://localhost:8007/docs
 ```
 
 📖 Setup, endpoints, curl examples and configuration: **[module07/README.md](module07/README.md)**
@@ -289,7 +292,7 @@ visible instead of solved. That problem is what module09 answers.
 
 ```bash
 cd module08/cnn-website && cp .env.example .env    # add your NewsAPI key
-docker compose up --build --wait                   # -> http://localhost:8080/docs
+docker compose up --build --wait                   # -> http://localhost:8008/docs
 ```
 
 📖 Setup, endpoints, curl examples and configuration: **[module08/README.md](module08/README.md)**
@@ -318,11 +321,85 @@ pushes `static/auth.js` into existence and turns every page into a shell the bro
 ```bash
 cd module09/cnn-website && cp .env.example .env    # add your NewsAPI key
 openssl rand -hex 32                               # ...and a SECRET_KEY
-docker compose up --build --wait                   # -> http://localhost:8080/docs
+docker compose up --build --wait                   # -> http://localhost:8009/docs
 ```
 
 📖 Setup, endpoints, curl examples and configuration: **[module09/README.md](module09/README.md)**
 📋 Full topic list: **[module09/AGENDA.md](module09/AGENDA.md)**
+
+---
+
+# Module 10 — Email, Redis and a Celery worker
+
+**[cnn-website/](module10/cnn-website/)** stops being a single process. Three ideas arrive together,
+and each one brings a container: a **mail sink**, a **cache**, and a **worker**.
+
+**Email verification** makes an account something you have to prove. Registering mails a link, and
+until it is clicked the login endpoint answers `401 "Email is not verified"` — a second JWT *scope*,
+`verification_token`, signed by the same key as the access token and rejected anywhere an access
+token is expected. The mail goes out through `BackgroundTasks`, after the response, so registering
+stays fast; [Mailpit](https://mailpit.axllent.org/) catches it and delivers nothing.
+
+**Redis** shows up twice, doing two unrelated jobs. As a **cache** it sits in front of exactly one
+route, cache-aside, invalidated on write with a TTL only as a backstop — and every failure is logged
+and swallowed, because a cache that is down is a slow app, not a broken one. As a **rate limiter** it
+backs one middleware over `/api/*`: `SET key 1 EX n NX`, a `429` with `Retry-After`, and the same
+fail-open rule. Middleware order turns out to be load-bearing — `add_middleware` inserts at position
+zero, so the last one added is the outermost.
+
+**Celery** adds the app's second process type: work no request is waiting for. A `worker`, a `beat`
+and Flower, all from the same image as the app and differing only in their command. Two tasks run on
+a `crontab` — the reader newsletter and an admin stats report — which is where roles arrive, since
+somebody has to be the admin the report is addressed to. The interesting parts are the seams: sync
+tasks wrapping an async app in `asyncio.run`, a prefork pool that inherits connections it must not
+share, and Redis databases 0, 1 and 2 kept apart so that flushing the cache does not delete the queue.
+
+```bash
+cd module10/cnn-website && cp .env.example .env    # add your NewsAPI key
+openssl rand -hex 32                               # ...and a SECRET_KEY
+docker compose up --build --wait                   # -> http://localhost:8010/docs
+```
+
+📖 Setup, every feature, the commands to drive each one: **[module10/README.md](module10/README.md)**
+📋 Full topic list: **[module10/AGENDA.md](module10/AGENDA.md)**
+
+---
+
+# Module 11 — Testing: unit, integration, end-to-end and load
+
+**[cnn-website/](module11/cnn-website/)** is module10's application, unchanged, with three test
+suites around it. The point of the module is that the levels differ in exactly **one** way — how
+much of the stack is genuine — and everything else follows from that.
+
+The in-process suite runs the whole app with **nothing running**: SQLite in memory, the ASGI app
+called through `httpx.ASGITransport` with no socket, a fake Redis and an outbox that catches mail
+before it reaches SMTP. Each fake goes in through a seam the application already had — FastAPI's own
+`dependency_overrides`, module-level clients looked up by attribute, the tasks' own session context
+manager — so almost nothing in `news/` was written for the tests. The exception is documented rather
+than hidden.
+
+`tests/e2e/` is the other extreme: a real Chrome driven by Selenium against the running stack, with
+nothing faked at all — the container writes to Postgres, really sends mail, and the test reads the
+verification link back out of the Mailpit inbox the way a reader would. `tests/load/` is the third
+kind, Locust pointing fifty simulated readers at one endpoint, and the only suite that asserts about
+*time* rather than behaviour.
+
+Two smaller lessons sit underneath. **Mock or fake** is a real choice: a mock returning `None` for
+every cache read would make every cache test pass for the wrong reason. And **coverage** is opt-in
+here on purpose — a percentage printed after every run invites chasing it.
+
+```bash
+cd module11/cnn-website && cp .env.example .env    # add your NewsAPI key
+uv run pytest                                      # ~3s, and nothing has to be running
+
+openssl rand -hex 32                               # a SECRET_KEY, for the stack
+docker compose up --build --wait                   # -> http://localhost:8011/docs
+uv run pytest -m e2e --no-cov                      # the browser suite, once it is up
+```
+
+📖 Setup, all three suites and the commands: **[module11/README.md](module11/README.md)**
+📋 Full topic list: **[module11/AGENDA.md](module11/AGENDA.md)**
+🧪 The four levels, illustrated: **[module11/testing-levels.html](module11/testing-levels.html)**
 
 ---
 

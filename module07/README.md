@@ -58,14 +58,14 @@ container start — the `command:` in `docker-compose.yaml` is
 
 | | |
 | --- | --- |
-| the reader | <http://localhost:8080> |
-| interactive API docs (Swagger UI) | <http://localhost:8080/docs> |
-| the same schema, ReDoc | <http://localhost:8080/redoc> |
-| pgAdmin | <http://localhost:5050> — `admin@gmail.com` / `admin` |
+| the reader | <http://localhost:8007> |
+| interactive API docs (Swagger UI) | <http://localhost:8007/docs> |
+| the same schema, ReDoc | <http://localhost:8007/redoc> |
+| pgAdmin | <http://localhost:5107> — `admin@gmail.com` / `admin` |
 
-<http://localhost:8080> lands on the headlines; the navbar's topic links and
+<http://localhost:8007> lands on the headlines; the navbar's topic links and
 search box re-query NewsAPI, and a card's title opens the detail page, which is
-rendered from the database. <http://localhost:8080/docs> is the more
+rendered from the database. <http://localhost:8007/docs> is the more
 interesting page here — every endpoint is listed with its schema, and **Try it
 out** fires a real request from the browser. pgAdmin takes about 25 seconds to
 finish booting and has the `db` connection preloaded, so there is no
@@ -74,12 +74,12 @@ finish booting and has the `db` connection preloaded, so there is no
 ### App on the host, database in Docker
 
 ```bash
-docker compose up -d --wait db        # just Postgres, on localhost:5433
+docker compose up -d --wait db        # just Postgres, on localhost:5407
 uv run alembic upgrade head
 uv run uvicorn news:app --reload      # -> http://localhost:8000/docs
 ```
 
-The host app reads `DB_HOST=localhost` / `DB_PORT=5433` from `.env`; the
+The host app reads `DB_HOST=localhost` / `DB_PORT=5407` from `.env`; the
 container overrides both to `db:5432`, because inside the Compose network the
 database is a service name rather than a published port.
 
@@ -87,9 +87,9 @@ database is a service name rather than a published port.
 
 | service | container | host port | what it is |
 | --- | --- | --- | --- |
-| `api` | `cnn07_api` | 8080 | the app under uvicorn (`8000` inside) |
-| `db` | `cnn07_postgres` | 5433 | Postgres 15 (`5432` inside the network) |
-| `pgadmin` | `cnn07_pgadmin` | 5050 | <http://localhost:5050> |
+| `api` | `cnn07_api` | 8007 | the app under uvicorn (`8000` inside) |
+| `db` | `cnn07_postgres` | 5407 | Postgres 15 (`5432` inside the network) |
+| `pgadmin` | `cnn07_pgadmin` | 5107 | <http://localhost:5107> |
 
 pgAdmin logs in with `admin@gmail.com` / `admin`; the `db` connection is
 preloaded from `pgadmin/servers.json`, so there is no "Register → Server…"
@@ -279,11 +279,11 @@ Notes worth knowing before you rely on them:
 
 ## Testing it with curl
 
-Against the Compose stack on port 8080. If you are running uvicorn on the host,
+Against the Compose stack on port 8007. If you are running uvicorn on the host,
 use `localhost:8000` instead.
 
 ```bash
-B=localhost:8080
+B=localhost:8007
 ```
 
 **Is it up, and can it reach the database?**
@@ -395,7 +395,7 @@ Compose overrides the database host without editing a file.
 | `DB_PASSWORD` | `admin` | a `SecretStr`; URL-escaped into the connection string |
 | `DB_NAME` | `cnn` | |
 | `DB_HOST` | `localhost` | Compose overrides this to `db` for the api container |
-| `DB_PORT` | `5433` | host-side; inside Compose the api container uses `5432` |
+| `DB_PORT` | `5407` | host-side; inside Compose the api container uses `5432` |
 | `DEFAULT_SOURCE` | `cnn` | which NewsAPI source the front page shows |
 | `PAGE_SIZE` | `12` | how many articles to request **from NewsAPI** |
 
@@ -503,7 +503,7 @@ rm -rf .venv && uv sync       # the fix
 `[asyncio]` extra on SQLAlchemy is what installs greenlet. `uv sync` after
 checking `pyproject.toml` still says `sqlalchemy[asyncio]`.
 
-**Port 8080, 5433 or 5050 already in use.** Something else is bound. The database
+**Port 8007, 5407 or 5107 already in use.** Something else is bound. The database
 port can be overridden on the host side without editing the file:
 
 ```bash
