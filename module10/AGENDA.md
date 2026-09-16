@@ -28,7 +28,7 @@
 - `beat_schedule` with a `crontab`, not an interval — an interval drifts on every restart
 - Redis databases 0 / 1 / 2: cache, broker, result backend, kept apart on purpose
 - Sync tasks over an async app: `asyncio.run` around the real coroutine
-- Prefork and inherited connections — the `worker_process_init` hook
+- Prefork, and a pooled connection that outlives the loop that opened it
 - No lifespan in a worker; a client per call
 - `autoretry_for`, `retry_backoff`, `retry_jitter`, `max_retries`
 - Two tasks: the reader newsletter, and an admin stats report

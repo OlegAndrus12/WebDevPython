@@ -165,9 +165,11 @@ services:
         condition: service_started
     # No `alembic upgrade head` here, for the reason in depends_on above.
     #
-    # --concurrency=2 with the prefork pool, which is what makes the
-    # worker_process_init hook in news/celery_app.py necessary rather than
-    # decorative. Drop to `--pool=solo` to take forking out of the picture.
+    # --concurrency=2 with the prefork pool. Each task runs asyncio.run(), so
+    # every one gets a fresh event loop; a pooled connection belongs to the loop
+    # that opened it, which is why news/cache.py catches RuntimeError ("Event
+    # loop is closed") beside RedisError. Drop to `--pool=solo` to take forking
+    # out of the picture.
     #
     # Celery has no --reload, unlike the api service: a change to news/tasks.py
     # needs `docker compose restart worker` to be picked up.
