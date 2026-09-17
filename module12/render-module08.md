@@ -80,10 +80,33 @@ The region matters: a web service can only reach a database over the private
 network if both are in the **same region and account**. Getting this wrong is
 the most common way this deploy fails.
 
-When it finishes provisioning, open its **Connect** panel. You will need, from
-the *internal* connection details: **hostname**, **port** (5432), **database**,
+When it finishes provisioning, open its **Info** page. You will need, from the
+*internal* connection details: **hostname**, **port** (5432), **database**,
 **username**, **password**. Keep the *external* connection string too — step 6
 uses it.
+
+### Internal vs external hostname
+
+Render gives the same instance two names, and picking the wrong one is the most
+common way this deploy fails:
+
+```
+internal   dpg-d1abc2defg3h4ijk5lmn-a
+external   dpg-d1abc2defg3h4ijk5lmn-a.oregon-postgres.render.com
+```
+
+The **internal** one is a short single-label name — no dots, no domain. It
+resolves only on Render's private network, through their internal DNS, and only
+for services in the same region and account. It is the one `DB_HOST` wants: the
+traffic never leaves Render, so it is faster and not exposed.
+
+The **external** one is that same name plus a region suffix, resolvable from
+anywhere. Your laptop cannot resolve the internal name at all, which is why
+step 6 seeds through the external one.
+
+You can skip transcribing any of this by using the
+[Blueprint](#optional-a-renderyaml-blueprint-instead) — `fromDatabase` fills
+`DB_HOST` and the rest from the instance Render creates.
 
 ---
 
