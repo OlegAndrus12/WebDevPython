@@ -300,11 +300,42 @@ curl -s $B/api/stats
 Now the deployed app is fully usable: browse `/article/{id}`, create readers,
 like things, read `/liked`. Repeat this whenever you want fresher stories.
 
-`psql` works too — the external connection string is on the Info page:
+---
+
+## Getting into the database
+
+There is **no SQL editor in the Render dashboard** — it shows connection details
+and metrics, not a query console. You connect from outside instead, and all
+three of these work on the free instance type:
 
 ```bash
+# 1. psql, with the external connection string from the Info page
+psql '<external-connection-string>'
 psql '<external-connection-string>' -c '\dt'
+
+# 2. the Render CLI -- the same session, less copy-paste
+render psql cnn08-db
+render psql cnn08-db -c 'select count(*) from articles;'
 ```
+
+**3. Any GUI** — pgAdmin, DBeaver, TablePlus — using the external hostname,
+port `5432`, database `cnn`, user `admin` and the generated password. TLS is
+required; Render rejects `sslmode=disable` on external connections.
+
+You do not have to give up the pgAdmin you already have. module08's Compose file
+ships one, so bring up that service alone and register the Render database in it:
+
+```bash
+docker compose up -d pgadmin      # from module08/cnn-website
+```
+
+Then <http://localhost:5108> → **Register → Server…**, with the *external*
+hostname. The preloaded `db` entry points at the local Compose Postgres; the
+Render one is a second entry beside it.
+
+Remember that the external host is reachable from anywhere with the password, so
+a free database with no backups is not the place for anything you would mind
+losing — it expires after 30 days regardless.
 
 ---
 
@@ -386,8 +417,12 @@ working deploy.
 
 ## What you do not get
 
-- **pgAdmin.** It is a dev convenience; use `psql` with the external connection
-  string, or Render's own database UI.
+- **pgAdmin as a service.** Nothing stops you pointing your *local* one at the
+  deployed database — see [getting into the database](#getting-into-the-database).
+- **A shell on the instance.** `render ssh` and the dashboard's Shell tab are
+  both excluded from free web services, so there is no free-tier equivalent of
+  `docker compose exec api sh`. That is a large part of why `render-start.sh`
+  exists: it is the only way a command runs inside that container.
 - **`--reload`.** Deploys come from git pushes, not from a file watcher.
 - **The bind mount.** Locally, `.:/app` means a save reaches the container. On
   Render the source is baked into the image at build time, which is why a code
