@@ -87,8 +87,8 @@ uses it.
 
 ### Internal vs external hostname
 
-Render gives the same instance two names, and picking the wrong one is the most
-common way this deploy fails:
+Render gives the same instance two names, and picking the wrong one is the
+other common way this deploy fails:
 
 ```
 internal   dpg-d1abc2defg3h4ijk5lmn-a
