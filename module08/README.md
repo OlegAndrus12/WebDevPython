@@ -26,7 +26,13 @@ cnn-website/
     static/likes.js   the reader picker and the like buttons
   migrations/         Alembic with an async env.py + three revisions
   docker-compose.yaml api + db + pgAdmin
+  render-start.sh     migrate, then serve -- deployment only, see module12
 ```
+
+`render-start.sh` is the odd one out — the only file here that is not about this
+module's topic. It runs `alembic upgrade head` and then the server, which is what
+[deploying to Render](../module12/render-module08.md) needs and nothing local
+does: Compose runs its own command and never touches it.
 
 **Stack:** FastAPI · uvicorn · SQLAlchemy 2.0 (asyncio) + greenlet · Alembic ·
 psycopg 3 · httpx · pydantic + email-validator · Postgres 15 · Python 3.13 · uv
