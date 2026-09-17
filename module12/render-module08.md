@@ -149,21 +149,26 @@ which is what the `COPY pyproject.toml uv.lock ./` and `COPY . .` lines expect.
 
 Then, under **Advanced**:
 
-**Docker Command** — replaces the image's `CMD`:
+**Docker Command** — replaces the image's `CMD`. Enter it exactly like this,
+with **no quotes and no `/bin/sh -c` wrapper**:
 
 ```sh
-/bin/sh -c "alembic upgrade head && uvicorn news:app --host 0.0.0.0 --port $PORT"
+alembic upgrade head && uvicorn news:app --host 0.0.0.0 --port $PORT
 ```
+
+Render already runs this field through a shell, so `&&` and `$PORT` both work.
+Wrapping it yourself in `/bin/sh -c "…"` **fails** — Render keeps the quotes, so
+the shell receives the whole thing as a single quoted word and exits 127. See
+[troubleshooting](#troubleshooting).
 
 Three things are happening there:
 
-- `/bin/sh -c` because it is two commands. `&&` also makes the migration a
-  gate: a failed `alembic upgrade head` stops the container instead of letting
-  it serve against the wrong schema.
+- `&&` makes the migration a gate: a failed `alembic upgrade head` stops the
+  container instead of letting it serve against the wrong schema.
 - `--host 0.0.0.0`, because the default `127.0.0.1` is the container's own
   loopback and Render's proxy would never reach it.
 - `--port $PORT`. Render sets `PORT` (default `10000`) and fails the deploy if
-  it cannot detect a bound port. `sh` expands it at start time.
+  it cannot detect a bound port. The shell expands it at start time.
 
 Running migrations in the start command is the free-tier approach. Render's
 **Pre-Deploy Command** is the proper home for migrations, but it is not
@@ -288,7 +293,7 @@ services:
     plan: free
     rootDir: module08/cnn-website
     dockerfilePath: ./Dockerfile
-    dockerCommand: /bin/sh -c "alembic upgrade head && uvicorn news:app --host 0.0.0.0 --port $PORT"
+    dockerCommand: alembic upgrade head && uvicorn news:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /healthz
     envVars:
       - key: NEWS_API_KEY
@@ -337,9 +342,21 @@ The dashboard route in steps 3–4 has no such ambiguity.
 
 ## Troubleshooting
 
+**`Exited with status 127`, and the log shows the whole command as "not found":**
+
+```
+/bin/sh: 1: alembic upgrade head && uvicorn news:app --host 0.0.0.0 --port 10000: not found
+```
+
+The Docker Command is wrapped in `/bin/sh -c "…"`. Render keeps those quotes and
+passes the result to a shell, which then treats the entire quoted string as one
+command name. Note that `$PORT` *did* expand — a shell ran; it just had nothing
+to run. Remove the wrapper and the quotes, leaving the bare
+`alembic upgrade head && uvicorn …` from step 3.
+
 **Deploy fails with "no open ports detected".** The command is not binding
-`$PORT`, or not binding `0.0.0.0`. Check the Docker Command is the `/bin/sh -c`
-form — without it, `$PORT` is passed to uvicorn as a literal string.
+`$PORT`, or not binding `0.0.0.0`. Check for a typo in `--host 0.0.0.0`; the
+image's own `CMD` binds a fixed `8000`, which Render will not find.
 
 **`/healthz` returns `{"db":"unreachable"}` or the deploy hangs on migrations.**
 The web service cannot reach the database. Almost always a region mismatch, or
