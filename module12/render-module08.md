@@ -108,6 +108,26 @@ You can skip transcribing any of this by using the
 [Blueprint](#optional-a-renderyaml-blueprint-instead) — `fromDatabase` fills
 `DB_HOST` and the rest from the instance Render creates.
 
+### The password
+
+Render generates it; you do not choose one. It is in the **Credentials** section
+of the same Info page, and it is embedded in the connection URLs shown there:
+
+```
+postgresql://admin:THIS_PART@dpg-d1abc2defg3h4ijk5lmn-a/cnn
+```
+
+There is no "reset password" button. Render rotates by *user*: create a new one
+(it becomes the default), update services, redeploy, then delete the old user —
+a zero-downtime rotation. Blueprint-managed variables re-sync automatically;
+hand-entered ones you update yourself.
+
+> **Do not paste it into `module08/cnn-website/.env`.** This repo *commits* its
+> `.env` files, so a live database password put there lands in git history on
+> the next `git add -A`. It belongs in Render's environment variables, and — for
+> [step 6](#6-seed-the-database) — inline on the command line, which is how that
+> step is written.
+
 ---
 
 ## 3. Create the web service
