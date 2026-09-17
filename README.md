@@ -19,6 +19,7 @@ concrete — run it, break it, read why it broke.
 ├── module09/   JWT authentication
 ├── module10/   Email, Redis and a Celery worker
 ├── module11/   Testing: unit, integration, end-to-end and load
+├── module12/   Deployment  (placeholder)
 ```
 
 Modules 06 to 11 are six iterations of **one** application — the same news reader, rebuilt as each
@@ -400,6 +401,15 @@ uv run pytest -m e2e --no-cov                      # the browser suite, once it 
 📖 Setup, all three suites and the commands: **[module11/README.md](module11/README.md)**
 📋 Full topic list: **[module11/AGENDA.md](module11/AGENDA.md)**
 🧪 The four levels, illustrated: **[module11/testing-levels.html](module11/testing-levels.html)**
+
+---
+
+# Module 12 — Deployment
+
+**Placeholder.** Where the notes on getting this app from `docker compose up` on
+a laptop to something running on a server will live. Nothing in it yet.
+
+📖 **[module12/README.md](module12/README.md)**
 
 ---
 
