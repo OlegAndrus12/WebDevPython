@@ -308,15 +308,35 @@ There is **no SQL editor in the Render dashboard** — it shows connection detai
 and metrics, not a query console. You connect from outside instead, and all
 three of these work on the free instance type:
 
+**1. `psql`, with the external connection string.** It is on the database's
+**Info** page, labelled *External Database URL* — masked until you click to
+reveal, with a copy button. The whole URL in one piece:
+
+```
+postgresql://admin:<password>@dpg-d1abc2defg3h4ijk5lmn-a.oregon-postgres.render.com/cnn
+```
+
 ```bash
-# 1. psql, with the external connection string from the Info page
 psql '<external-connection-string>'
 psql '<external-connection-string>' -c '\dt'
-
-# 2. the Render CLI -- the same session, less copy-paste
-render psql cnn08-db
-render psql cnn08-db -c 'select count(*) from articles;'
 ```
+
+**2. The Render CLI** — the same session, without copying anything. It is a tool
+you install and run **on your own machine**; it talks to Render's API, so there
+is nothing to run "on Render":
+
+```bash
+brew install render-oss/render/render     # macOS; see the docs for the install script
+render login                              # opens the browser, then asks which workspace
+
+render psql                               # lists your databases and prompts
+render psql <database-id> -c 'select count(*) from articles;'
+```
+
+`render psql` takes the database's **ID** (the `dpg-…` on its Info page), not the
+name you gave it — or no argument at all, which is easier. It hands off to a
+local `psql`, so you need that installed too: `brew install libpq` gets the
+client without a server.
 
 **3. Any GUI** — pgAdmin, DBeaver, TablePlus — using the external hostname,
 port `5432`, database `cnn`, user `admin` and the generated password. TLS is
@@ -487,6 +507,7 @@ NewsAPI caveat at the top. Seed from your laptop instead (step 6).
 - [Render — Postgres credentials](https://render.com/docs/postgresql-credentials)
 - [Render — Deploys and the pre-deploy command](https://render.com/docs/deploys)
 - [Render — Blueprint spec](https://render.com/docs/blueprint-spec)
+- [Render — CLI](https://render.com/docs/cli)
 - [Render — Free Postgres now expires after 30 days](https://render.com/changelog/free-postgresql-instances-now-expire-after-30-days-previously-90)
 - [Render — Deploy for free](https://render.com/docs/free)
 - [NewsAPI — pricing and plan terms](https://newsapi.org/pricing)
