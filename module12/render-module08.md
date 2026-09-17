@@ -1,8 +1,9 @@
 # Deploying module08 to Render
 
-Step by step, from this repo to a public URL. **No changes to module08's source
-are needed** — the Dockerfile already builds a production image, and everything
-Render needs is set in its dashboard.
+Step by step, from this repo to a public URL. module08's Dockerfile already
+builds a production image; the only thing it gains for this is a one-file start
+script, because of [what Render's Docker Command can and cannot
+do](#the-docker-command-is-not-a-shell).
 
 Written for someone who has the repo on GitHub and a Render account.
 
@@ -43,24 +44,69 @@ Workspaces get 750 free instance hours a month.
 | --- | --- |
 | `db` service, reachable as `db:5432` | a managed Postgres instance |
 | `pgadmin` service | nothing — connect with `psql` instead |
-| `command:` runs `alembic upgrade head` before uvicorn | a **Docker Command** override does the same |
+| `command:` runs `alembic upgrade head` before uvicorn | `render-start.sh` does the same — see below |
 | app listens on a fixed `8000` | must bind `0.0.0.0:$PORT` |
 | `env_file: .env` | environment variables set in the dashboard |
 
-The Dockerfile's `CMD` hardcodes `--port 8000` and does not run migrations, so
-you override the command. That is the only Render-specific thing in the whole
-setup.
+### The Docker Command is not a shell
+
+Render **does not run the Docker Command through a shell.** It splits the field
+into arguments itself, substitutes environment variables, and execs the result
+directly. So the command must be **one executable plus its arguments**. No `&&`,
+no `;`, no pipes, no quotes.
+
+That rules out the obvious `alembic upgrade head && uvicorn …` one-liner, in
+both of its spellings — each fails a different way, and both are in
+[troubleshooting](#troubleshooting). Render's own Docker docs suggest wrapping
+multiple commands in `/bin/sh -c "…"`; for this field that does not work,
+because the quotes are passed through literally.
+
+Render's [Pre-Deploy Command](https://render.com/docs/deploys) is the usual home
+for migrations, but it is not available on the Free plan. So the migration goes
+where it belongs anyway: in the image, as part of starting up.
 
 ---
 
-## 1. Push the repo to GitHub
+## 1. The start script
+
+[`module08/cnn-website/render-start.sh`](../module08/cnn-website/render-start.sh)
+is the one executable that does both things:
+
+```sh
+#!/bin/sh
+set -e
+alembic upgrade head
+exec uvicorn news:app --host 0.0.0.0 --port "${PORT:-8000}"
+```
+
+- `set -e` makes the migration a **gate**. If `alembic upgrade head` fails the
+  container exits non-zero and never serves, instead of answering requests
+  against the wrong schema. Render marks the deploy failed and keeps the
+  previous version live.
+- `exec` replaces the shell with uvicorn, so uvicorn is PID 1 and still receives
+  `SIGTERM` when Render shuts the instance down. Without it, signals stop at the
+  shell and the instance is killed rather than drained.
+- `${PORT:-8000}` takes Render's port and falls back to the local default, so
+  the same script works in both places.
+
+It runs on every start, including every wake from spin-down. That is fine:
+`alembic upgrade head` on an up-to-date database is a no-op.
+
+> **Why not run migrations from your laptop instead?** You can —
+> `DB_HOST=<external-host> … uv run alembic upgrade head` works, and needs no
+> new file. But it puts production credentials on a dev machine, makes the
+> deploy depend on a human remembering a step, and lets the schema drift from
+> the code that was pushed. It is a reasonable escape hatch, not a way to run
+> something.
+
+```bash
+git add module08/cnn-website/render-start.sh
+git commit -m "module08: start script for Render"
+git push origin main
+```
 
 Render deploys from a connected repo. The whole monorepo goes up; you point the
 service at one subdirectory in step 3.
-
-```bash
-git push origin main
-```
 
 ---
 
@@ -80,10 +126,8 @@ The region matters: a web service can only reach a database over the private
 network if both are in the **same region and account**. Getting this wrong is
 the most common way this deploy fails.
 
-When it finishes provisioning, open its **Info** page. You will need, from the
-*internal* connection details: **hostname**, **port** (5432), **database**,
-**username**, **password**. Keep the *external* connection string too — step 6
-uses it.
+When it finishes provisioning, open its **Info** page. You will need both sets
+of connection details — internal for the service, external for your laptop.
 
 ### Internal vs external hostname
 
@@ -102,9 +146,9 @@ traffic never leaves Render, so it is faster and not exposed.
 
 The **external** one is that same name plus a region suffix, resolvable from
 anywhere. Your laptop cannot resolve the internal name at all, which is why
-step 6 seeds through the external one.
+step 6 uses the external one.
 
-You can skip transcribing any of this by using the
+You can skip transcribing the internal details by using the
 [Blueprint](#optional-a-renderyaml-blueprint-instead) — `fromDatabase` fills
 `DB_HOST` and the rest from the instance Render creates.
 
@@ -125,8 +169,7 @@ hand-entered ones you update yourself.
 > **Do not paste it into `module08/cnn-website/.env`.** This repo *commits* its
 > `.env` files, so a live database password put there lands in git history on
 > the next `git add -A`. It belongs in Render's environment variables, and — for
-> [step 6](#6-seed-the-database) — inline on the command line, which is how that
-> step is written.
+> step 6 — inline on the command line, which is how that step is written.
 
 ---
 
@@ -149,32 +192,18 @@ which is what the `COPY pyproject.toml uv.lock ./` and `COPY . .` lines expect.
 
 Then, under **Advanced**:
 
-**Docker Command** — replaces the image's `CMD`. Enter it exactly like this,
-with **no quotes and no `/bin/sh -c` wrapper**:
+**Docker Command** — replaces the image's `CMD`. Two words, no quotes:
 
 ```sh
-alembic upgrade head && uvicorn news:app --host 0.0.0.0 --port $PORT
+sh render-start.sh
 ```
 
-Render already runs this field through a shell, so `&&` and `$PORT` both work.
-Wrapping it yourself in `/bin/sh -c "…"` **fails** — Render keeps the quotes, so
-the shell receives the whole thing as a single quoted word and exits 127. See
-[troubleshooting](#troubleshooting).
-
-Three things are happening there:
-
-- `&&` makes the migration a gate: a failed `alembic upgrade head` stops the
-  container instead of letting it serve against the wrong schema.
-- `--host 0.0.0.0`, because the default `127.0.0.1` is the container's own
-  loopback and Render's proxy would never reach it.
-- `--port $PORT`. Render sets `PORT` (default `10000`) and fails the deploy if
-  it cannot detect a bound port. The shell expands it at start time.
-
-Running migrations in the start command is the free-tier approach. Render's
-**Pre-Deploy Command** is the proper home for migrations, but it is not
-available on the Free plan. On a single free instance there is nothing to race,
-and `alembic upgrade head` is idempotent — it re-runs on every wake-up and does
-nothing.
+`sh <file>` rather than `./render-start.sh` on purpose: it does not depend on
+the executable bit surviving git and the image build. The script handles
+`--host 0.0.0.0` (the default `127.0.0.1` is the container's own loopback, which
+Render's proxy could never reach) and `$PORT` (Render sets it, default `10000`,
+and fails the deploy if it cannot detect a bound port). The image's own `CMD`
+hardcodes `8000` and runs no migration, which is why it is overridden at all.
 
 **Health Check Path**: `/healthz`
 
@@ -223,11 +252,13 @@ In the logs you are looking for, in order:
 ```
 INFO  [alembic.runtime.migration] Running upgrade  -> 759161cd8fb3, create sources and articles
 INFO  [alembic.runtime.migration] Running upgrade 759161cd8fb3 -> b773fddbe615, removing fetched at
-INFO  [alembic.runtime.migration] Running upgrade b773fddbe615 -> 4f0bc8afd9a6, ...
+INFO  [alembic.runtime.migration] Running upgrade b773fddbe615 -> 4f0bc8afd9a6, users and liked_articles
 INFO:     Uvicorn running on http://0.0.0.0:10000
 ```
 
-Then check it:
+Those three lines appear once, on the first deploy against an empty database.
+Later deploys print `Context impl PostgresqlImpl` and nothing else, which is
+what an up-to-date schema looks like. Then check it:
 
 ```bash
 B=https://<your-service>.onrender.com
@@ -250,12 +281,11 @@ NewsAPI. Instead, point your **local** app at the Render database and load the
 front page once — the NewsAPI request then comes from your laptop, which is what
 its free plan allows.
 
-From `module08/cnn-website`, using the database's **external** connection
-details:
+From `module08/cnn-website`, using the database's **external** hostname:
 
 ```bash
 DB_HOST=<external-hostname> DB_PORT=5432 DB_NAME=cnn \
-DB_USER=admin DB_PASSWORD=<password> \
+DB_USER=admin DB_PASSWORD=<password> NEWS_API_KEY=<your-real-key> \
   uv run uvicorn news:app --port 8000
 ```
 
@@ -270,8 +300,7 @@ curl -s $B/api/stats
 Now the deployed app is fully usable: browse `/article/{id}`, create readers,
 like things, read `/liked`. Repeat this whenever you want fresher stories.
 
-If you would rather not connect anything locally, `psql` works too — the
-external connection string is on the database's Connect panel:
+`psql` works too — the external connection string is on the Info page:
 
 ```bash
 psql '<external-connection-string>' -c '\dt'
@@ -293,7 +322,7 @@ services:
     plan: free
     rootDir: module08/cnn-website
     dockerfilePath: ./Dockerfile
-    dockerCommand: alembic upgrade head && uvicorn news:app --host 0.0.0.0 --port $PORT
+    dockerCommand: sh render-start.sh
     healthCheckPath: /healthz
     envVars:
       - key: NEWS_API_KEY
@@ -328,15 +357,44 @@ The dashboard route in steps 3–4 has no such ambiguity.
 
 ---
 
+## Appendix: deploying without the start script
+
+If you would rather leave `module08/` untouched, drop `render-start.sh`, set the
+Docker Command to the bare server:
+
+```sh
+uvicorn news:app --host 0.0.0.0 --port $PORT
+```
+
+...and run migrations yourself before each deploy that needs one, from
+`module08/cnn-website`, against the **external** hostname:
+
+```bash
+DB_HOST=<external-hostname> DB_PORT=5432 DB_NAME=cnn \
+DB_USER=admin DB_PASSWORD=<password> NEWS_API_KEY=unused \
+  uv run alembic upgrade head
+```
+
+`NEWS_API_KEY=unused` is not optional even though alembic never uses it:
+`migrations/env.py` imports `settings`, and `Settings` validates every field at
+import, so without a value there it exits with `news_api_key Field required`
+before reaching the database.
+
+The trade is the one in [step 1](#1-the-start-script): no new file, but
+production credentials on your laptop and a manual step between a push and a
+working deploy.
+
 ## What you do not get
 
 - **pgAdmin.** It is a dev convenience; use `psql` with the external connection
   string, or Render's own database UI.
-- **`--reload`.** The Docker Command above deliberately omits it. Deploys come
-  from git pushes, not from a file watcher.
+- **`--reload`.** Deploys come from git pushes, not from a file watcher.
 - **The bind mount.** Locally, `.:/app` means a save reaches the container. On
   Render the source is baked into the image at build time, which is why a code
   change needs a push and a redeploy.
+- **A Pre-Deploy Command.** Free plan. `render-start.sh` covers it, with the
+  caveat that it runs on every instance start rather than once per deploy —
+  fine at one instance, something to revisit at several.
 
 ---
 
@@ -348,29 +406,37 @@ The dashboard route in steps 3–4 has no such ambiguity.
 /bin/sh: 1: alembic upgrade head && uvicorn news:app --host 0.0.0.0 --port 10000: not found
 ```
 
-The Docker Command is wrapped in `/bin/sh -c "…"`. Render keeps those quotes and
-passes the result to a shell, which then treats the entire quoted string as one
-command name. Note that `$PORT` *did* expand — a shell ran; it just had nothing
-to run. Remove the wrapper and the quotes, leaving the bare
-`alembic upgrade head && uvicorn …` from step 3.
+The Docker Command was wrapped in `/bin/sh -c "…"`. Render passes the quotes
+through literally, so the shell receives the entire quoted string as a single
+word and tries to exec a file by that name.
 
-**Deploy fails with "no open ports detected".** The command is not binding
-`$PORT`, or not binding `0.0.0.0`. Check for a typo in `--host 0.0.0.0`; the
-image's own `CMD` binds a fixed `8000`, which Render will not find.
+**`Exited with status 2`, and alembic prints its usage:**
 
-**`/healthz` returns `{"db":"unreachable"}` or the deploy hangs on migrations.**
-The web service cannot reach the database. Almost always a region mismatch, or
-`DB_HOST` set to the *external* hostname instead of the internal one.
+```
+alembic: error: unrecognized arguments: && uvicorn news:app --host 0.0.0.0 --port 10000
+```
 
-**`ValidationError: news_api_key Field required` at boot.** `NEWS_API_KEY` is
-not set on the service. It has no default by design.
+The other half of the same problem: without quotes, Render execs `alembic`
+directly and hands it `&&` and everything after as arguments. There is no shell
+to interpret them. Use `sh render-start.sh` from step 3.
+
+**Deploy fails with "no open ports detected".** The Docker Command was left at
+the image's own `CMD`, which binds a fixed `8000` and runs no migration.
+
+**`/healthz` returns `{"db":"unreachable"}`.** The web service cannot reach the
+database. Almost always a region mismatch, or `DB_HOST` set to the *external*
+hostname instead of the internal one.
+
+**`ValidationError: news_api_key Field required`.** `NEWS_API_KEY` is not set on
+the service. It has no default by design — and alembic hits the same error,
+because `migrations/env.py` imports `settings`.
+
+**`relation "articles" does not exist` on `/api/articles`.** The migration did
+not run. Check the deploy log for the `Running upgrade` lines, and that the
+Docker Command is `sh render-start.sh` and not the bare `uvicorn ...`.
 
 **The front page shows an error banner but the API works.** Expected — see the
 NewsAPI caveat at the top. Seed from your laptop instead (step 6).
-
-**Everything 404s or the schema is empty.** `alembic upgrade head` did not run.
-Confirm the Docker Command override actually saved; the image's own `CMD` does
-not include it.
 
 **First request after a while takes ~a minute.** Free instances spin down after
 15 minutes idle. That is the plan, not a bug.
@@ -383,6 +449,7 @@ not include it.
 - [Render — Web Services and port binding](https://render.com/docs/web-services)
 - [Render — Monorepo support](https://render.com/docs/monorepo-support)
 - [Render — Connecting to Postgres](https://render.com/docs/postgresql-creating-connecting)
+- [Render — Postgres credentials](https://render.com/docs/postgresql-credentials)
 - [Render — Deploys and the pre-deploy command](https://render.com/docs/deploys)
 - [Render — Blueprint spec](https://render.com/docs/blueprint-spec)
 - [Render — Free Postgres now expires after 30 days](https://render.com/changelog/free-postgresql-instances-now-expire-after-30-days-previously-90)

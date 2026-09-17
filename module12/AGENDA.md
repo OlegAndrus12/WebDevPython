@@ -3,7 +3,9 @@
 ### Render — module08 ([guide](render-module08.md))
 - A Dockerfile-based web service from one subdirectory of a monorepo (`rootDir`)
 - Binding `0.0.0.0:$PORT`, and why the image's own `CMD` is not enough
-- Migrations as a start-command gate, since pre-deploy is not on the free plan
+- The Docker Command is not a shell: no `&&`, no quotes, one executable only
+- A start script as the place migrations belong, with `set -e` as the gate and
+  `exec` so the server keeps PID 1 and still receives SIGTERM
 - Managed Postgres: internal vs external hostnames, region pinning, `sslmode=prefer`
 - Config as five env vars, wired with `fromDatabase` in a Blueprint
 - `/healthz` as a health check that actually touches the database
