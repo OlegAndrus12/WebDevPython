@@ -1,8 +1,9 @@
 # module12 — deployment
 
-Placeholder. This module will cover getting the news reader from
-`docker compose up` on a laptop to something running on a server.
+Getting the news reader off a laptop and onto a server.
 
-Nothing here yet.
+| Guide | Covers |
+| --- | --- |
+| [render-module08.md](render-module08.md) | module08 on [Render](https://render.com) — Docker service from a monorepo subdirectory, managed Postgres, migrations on start, and what the free tier does and does not give you |
 
 📋 Topic list: **[AGENDA.md](AGENDA.md)**

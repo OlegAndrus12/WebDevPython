@@ -19,7 +19,7 @@ concrete — run it, break it, read why it broke.
 ├── module09/   JWT authentication
 ├── module10/   Email, Redis and a Celery worker
 ├── module11/   Testing: unit, integration, end-to-end and load
-├── module12/   Deployment  (placeholder)
+├── module12/   Deployment: getting a module onto a server
 ```
 
 Modules 06 to 11 are six iterations of **one** application — the same news reader, rebuilt as each
@@ -406,10 +406,20 @@ uv run pytest -m e2e --no-cov                      # the browser suite, once it 
 
 # Module 12 — Deployment
 
-**Placeholder.** Where the notes on getting this app from `docker compose up` on
-a laptop to something running on a server will live. Nothing in it yet.
+Where the notes on getting one of these modules off a laptop and onto a server live.
+
+**[render-module08.md](module12/render-module08.md)** — module08 on
+[Render](https://render.com), step by step. A Dockerfile-based web service built from one
+subdirectory of this monorepo, a managed Postgres beside it, and the two things Compose was
+quietly doing that Render is not: running `alembic upgrade head` before the server starts, and
+binding `0.0.0.0:$PORT` instead of a fixed port. No changes to module08's source are needed.
+
+It is also an honest look at a free tier: Postgres that expires after 30 days, a service that
+spins down after 15 minutes idle, no pre-deploy command — and an upstream API whose free plan
+forbids production use, which is worked around by seeding the deployed database from your laptop.
 
 📖 **[module12/README.md](module12/README.md)**
+📋 Full topic list: **[module12/AGENDA.md](module12/AGENDA.md)**
 
 ---
 
